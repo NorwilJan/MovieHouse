@@ -199,41 +199,22 @@
       justify-content: center;
       overflow-y: auto;
     }
-    #modal-video, #tv-episode-player {
-      width: 98%;
-      aspect-ratio: 16/9;
-      min-height: 180px;
-      max-height: 46vh;
-      margin: 1rem auto 0 auto;
-      display: block;
-      border-radius: 6px;
-      background: #111;
-      border: none;
-    }
     @media (max-width: 767.98px) {
-      #modal-video, #tv-episode-player {
-        min-height: 120px;
-        max-height: 30vh;
-      }
-      .modal-content {
-        max-height: 98vh;
-      }
-    }
-    .modal-body {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1.5rem;
-      padding: 2rem 2rem 1rem 2rem;
-    }
-    .modal-body img {
-      max-width: 180px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-    }
-    .modal-text {
-      min-width: 0;
-      flex: 1 1 240px;
-    }
+  #modal-video, #tv-episode-player {
+    width: 96vw !important;
+    height: 54vw !important;     /* This keeps a 16:9 aspect ratio */
+    max-width: 100vw !important;
+    min-height: unset !important;
+    max-height: 60vw !important;
+    aspect-ratio: 16/9 !important;
+    margin: 0.5rem auto 0.5rem auto !important;
+    display: block;
+  }
+  .modal-content {
+    max-height: 98vh;
+    padding: 0.5rem;
+  }
+}
     .modal-genre, .modal-cast, .modal-crew {
       font-size: 0.97em;
       margin-bottom: 6px;
