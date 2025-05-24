@@ -242,6 +242,16 @@
         max-height: 98vh;
       }
     }
+    /* Ensure iframe fills screen in landscape fullscreen */
+    @media (orientation: landscape) and (max-width: 991.98px) {
+      #modal-video:fullscreen, #tv-episode-player:fullscreen {
+        width: 100vw;
+        height: 100vh;
+        max-height: none;
+        margin: 0;
+        border-radius: 0;
+      }
+    }
     .modal-body {
       display: flex;
       flex-wrap: wrap;
@@ -568,6 +578,54 @@
     let netflixType = "movie"; // "movie" or "tv"
     let tvModalData = { tvId: null, season: null, episode: null, seasons: [] };
 
+    // Check if device is mobile or tablet
+    function isMobileOrTablet() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+             window.matchMedia("(max-width: 991.98px)").matches;
+    }
+
+    // Handle orientation lock for fullscreen
+    function handleFullscreenOrientation(iframe) {
+      if (!isMobileOrTablet()) return; // Skip for desktop
+      const lockOrientation = () => {
+        if (document.fullscreenElement === iframe && screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(err => {
+            console.warn('Orientation lock failed:', err);
+            // Fallback: Suggest user rotate device
+            const modalBody = iframe.closest('.modal-content').querySelector('.modal-body');
+            const errorMsg = document.createElement('p');
+            errorMsg.className = 'error-state';
+            errorMsg.textContent = 'Please rotate your device to landscape for the best fullscreen experience.';
+            errorMsg.style.marginTop = '1rem';
+            if (!modalBody.querySelector('.error-state')) {
+              modalBody.appendChild(errorMsg);
+              setTimeout(() => errorMsg.remove(), 5000);
+            }
+          });
+        }
+      };
+      const unlockOrientation = () => {
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock().catch(err => console.warn('Orientation unlock failed:', err));
+        }
+      };
+      iframe.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement === iframe) {
+          lockOrientation();
+        } else {
+          unlockOrientation();
+        }
+      });
+    }
+
+    // Initialize fullscreen orientation handlers
+    document.addEventListener('DOMContentLoaded', () => {
+      const movieIframe = document.getElementById('modal-video');
+      const tvIframe = document.getElementById('tv-episode-player');
+      handleFullscreenOrientation(movieIframe);
+      handleFullscreenOrientation(tvIframe);
+    });
+
     // FAVORITES/RECENTLY VIEWED
     function isFavorite(id) { return favorites.includes(id); }
     function toggleFavorite(id) {
@@ -869,6 +927,10 @@
       document.getElementById('tv-episode-player').style.display = "none";
       document.getElementById('tv-episode-player').src = "";
       document.getElementById('tv-episode-next-btn').style.display = "none";
+      // Unlock orientation when closing modal
+      if (isMobileOrTablet() && screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock().catch(err => console.warn('Orientation unlock failed:', err));
+      }
     }
 
     // MODAL - TV SHOWS
@@ -919,6 +981,10 @@
       document.getElementById('tv-episode-player').style.display = "none";
       document.getElementById('tv-episode-player').src = "";
       document.getElementById('tv-episode-next-btn').style.display = "none";
+      // Unlock orientation when closing TV modal
+      if (isMobileOrTablet() && screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock().catch(err => console.warn('Orientation unlock failed:', err));
+      }
     }
     window.playTvEpisode = function(tvId, seasonNum, episodeNum) {
       const iframe = document.getElementById('tv-episode-player');
