@@ -75,10 +75,14 @@
     .movie-poster-img {
       background: #222;
       border: 1px solid #222;
-      transition: box-shadow 0.2s;
+      transition: box-shadow 0.2s, opacity 0.3s;
       border-radius: 6px;
       display: block;
       width: 100%;
+      opacity: 0.3;
+    }
+    .movie-poster-img.loaded {
+      opacity: 1;
     }
     .movie-poster-wrapper:focus-within .movie-poster-img,
     .movie-poster-wrapper:hover .movie-poster-img:not(:hover) {
@@ -186,9 +190,22 @@
       margin: 40px auto;
       display: block;
     }
+    .iframe-spinner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-top: 5px solid #1976d2;
+      border: 5px solid #222;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 0.8s linear infinite;
+      z-index: 4;
+    }
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
     }
     .empty-state, .error-state {
       color: #bbb;
@@ -281,7 +298,14 @@
       color: #eee;
       margin-right: 1em;
     }
-    .share-btn {
+    .server-selector select {
+      background: #23272e;
+      color: #eee;
+      border: 1px solid #222;
+      padding: 0.3em;
+      border-radius: 4px;
+    }
+    .share-btn, .clear-recent-btn {
       display: inline-block;
       margin-top: 12px;
       padding: 7px 18px;
@@ -293,7 +317,8 @@
       cursor: pointer;
       transition: background 0.17s;
     }
-    .share-btn:hover, .share-btn:focus {
+    .share-btn:hover, .share-btn:focus,
+    .clear-recent-btn:hover, .clear-recent-btn:focus {
       background: #2196f3;
       color: #fff;
     }
@@ -302,6 +327,7 @@
       padding: 0.8rem 0.7rem 0.8rem 0.7rem;
       border-radius: 8px;
       background: #1a1f25;
+      position: relative;
     }
     #recently-viewed-list {
       display: flex;
@@ -415,7 +441,7 @@
   <!-- Movie Player Modal -->
   <div class="modal" id="modal">
     <div class="modal-content" id="modal-content-movie">
-      <span class="close" onclick="closeModal()">×</span>
+      <span class="close" onclick="closeModal()" tabindex="0" aria-label="Close modal">×</span>
       <div class="modal-body">
         <img id="modal-image" src="" alt="Poster" />
         <div class="modal-text">
@@ -426,12 +452,12 @@
           <div class="modal-cast" id="modal-cast"></div>
           <div class="modal-crew" id="modal-crew"></div>
           <div class="modal-trailer" id="modal-trailer"></div>
-          <button class="share-btn" id="share-movie-btn" onclick="shareMovie()">Share</button>
+          <button class="share-btn" id="share-movie-btn" onclick="shareMovie()" tabindex="0" aria-label="Share movie">Share</button>
         </div>
       </div>
       <div class="server-selector">
         <label for="server">Change Server:</label>
-        <select id="server" onchange="changeServer()">
+        <select id="server" onchange="changeServer()" tabindex="0" aria-label="Select video server">
           <option value="player.videasy.net">Player.Videasy.net</option>
           <option value="vidsrc.cc">Vidsrc.cc</option>
           <option value="vidsrc.me">Vidsrc.me</option>
@@ -439,15 +465,16 @@
       </div>
       <div class="iframe-container">
         <iframe id="modal-video" allowfullscreen autoplay></iframe>
-        <button class="iframe-play-overlay" onclick="triggerIframePlay('modal-video')">
+        <button class="iframe-play-overlay" onclick="triggerIframePlay('modal-video')" tabindex="0" aria-label="Play video">
           <i class="fas fa-play"></i>
         </button>
+        <div class="iframe-spinner" style="display:none;"></div>
       </div>
       <div id="similar-movies" style="padding: 1rem 2rem;"></div>
     </div>
     <!-- TV Modal Content (hidden unless TV show is shown) -->
     <div class="modal-content" id="modal-content-tv" style="display:none;">
-      <span class="close" onclick="closeTvModal()">×</span>
+      <span class="close" onclick="closeTvModal()" tabindex="0" aria-label="Close modal">×</span>
       <div class="modal-body">
         <img id="tv-modal-image" src="" alt="Poster" />
         <div class="modal-text">
@@ -456,18 +483,19 @@
           <p id="tv-modal-description"></p>
           <div><strong>First Air Date:</strong> <span id="tv-modal-air-date"></span></div>
           <div><strong>Seasons:</strong> <span id="tv-modal-total-seasons"></span></div>
-          <button class="share-btn" id="share-tv-btn" onclick="shareTvShow()" style="margin-bottom:1em;">Share</button>
+          <button class="share-btn" id="share-tv-btn" onclick="shareTvShow()" tabindex="0" aria-label="Share TV show" style="margin-bottom:1em;">Share</button>
           <div id="tv-modal-seasons-list"></div>
         </div>
       </div>
       <div class="iframe-container">
         <iframe id="tv-episode-player" allowfullscreen autoplay style="display:none;"></iframe>
-        <button class="iframe-play-overlay" onclick="triggerIframePlay('tv-episode-player')">
+        <button class="iframe-play-overlay" onclick="triggerIframePlay('tv-episode-player')" tabindex="0" aria-label="Play episode">
           <i class="fas fa-play"></i>
         </button>
+        <div class="iframe-spinner" style="display:none;"></div>
       </div>
       <div style="display:flex;justify-content:center;">
-        <button class="tv-episode-next-btn" id="tv-episode-next-btn" style="display:none;margin-bottom:1em;">Next Episode »</button>
+        <button class="tv-episode-next-btn" id="tv-episode-next-btn" style="display:none;margin-bottom:1em;" tabindex="0" aria-label="Play next episode">Next Episode »</button>
       </div>
     </div>
   </div>
@@ -510,7 +538,7 @@
     data-image-src="">
     <form class="d-flex tm-search-form" id="movie-search-form" autocomplete="off" style="width:100%;max-width:600px;margin:2em auto;">
       <input class="form-control tm-search-input" type="search" id="movie-search-input" placeholder="Search for any movie..." aria-label="Search">
-      <button class="btn btn-outline-success tm-search-btn" type="submit">
+      <button class="btn btn-outline-success tm-search-btn" type="submit" aria-label="Search">
         <i class="fas fa-search"></i>
       </button>
     </form>
@@ -518,7 +546,10 @@
 
   <div class="container-fluid tm-container-content tm-mt-60">
     <div id="recently-viewed-section" style="display:none;">
-      <h5 style="color:#fff;margin-bottom:0.7em;">Recently Viewed</h5>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.7em;">
+        <h5 style="color:#fff;margin:0;">Recently Viewed</h5>
+        <button class="clear-recent-btn" onclick="clearRecentlyViewed()" style="display:none;" tabindex="0" aria-label="Clear recently viewed">Clear</button>
+      </div>
       <div id="recently-viewed-list"></div>
     </div>
     <div class="row mb-4">
@@ -568,7 +599,7 @@
   <script>
     // --- CONFIG ---
     const apiKey = '40f1982842db35042e8561b13b38d492';
-    const imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
+    const imageBaseUrl = 'https://image.tmdb.org/t/p/';
     let lastModalMovie = null;
     let currentPage = 1;
     let totalPages = 1;
@@ -586,12 +617,11 @@
 
     // Handle orientation lock for fullscreen
     function handleFullscreenOrientation(iframe) {
-      if (!isMobileOrTablet()) return; // Skip for desktop
+      if (!isMobileOrTablet()) return;
       const lockOrientation = () => {
         if (document.fullscreenElement === iframe && screen.orientation && screen.orientation.lock) {
           screen.orientation.lock('landscape').catch(err => {
             console.warn('Orientation lock failed:', err);
-            // Fallback: Suggest user rotate device
             const modalBody = iframe.closest('.modal-content').querySelector('.modal-body');
             const errorMsg = document.createElement('p');
             errorMsg.className = 'error-state';
@@ -618,13 +648,17 @@
       });
     }
 
-    // Initialize fullscreen orientation handlers
-    document.addEventListener('DOMContentLoaded', () => {
-      const movieIframe = document.getElementById('modal-video');
-      const tvIframe = document.getElementById('tv-episode-player');
-      handleFullscreenOrientation(movieIframe);
-      handleFullscreenOrientation(tvIframe);
-    });
+    // Progressive image loading
+    function loadProgressiveImage(img, highResSrc) {
+      img.src = highResSrc.replace('/w500', '/w92'); // Low-res placeholder
+      img.style.opacity = '0.3';
+      const highRes = new Image();
+      highRes.src = highResSrc;
+      highRes.onload = () => {
+        img.src = highResSrc;
+        img.classList.add('loaded');
+      };
+    }
 
     // FAVORITES/RECENTLY VIEWED
     function isFavorite(id) { return favorites.includes(id); }
@@ -655,37 +689,57 @@
       });
     }
     let recentlyViewed = JSON.parse(localStorage.getItem("recently_viewed") || "[]");
-    function addRecentlyViewed(movie) {
-      recentlyViewed = recentlyViewed.filter(m => m.id !== movie.id);
-      recentlyViewed.unshift({id: movie.id, title: movie.title, poster_path: movie.poster_path, release_date: movie.release_date});
+    function addRecentlyViewed(item) {
+      const isTv = !!item.name && !item.title;
+      recentlyViewed = recentlyViewed.filter(m => m.id !== item.id || m.isTv !== isTv);
+      recentlyViewed.unshift({
+        id: item.id,
+        title: isTv ? item.name : item.title,
+        poster_path: item.poster_path,
+        release_date: isTv ? item.first_air_date : item.release_date,
+        isTv,
+        timestamp: Date.now()
+      });
       if (recentlyViewed.length > 12) recentlyViewed = recentlyViewed.slice(0, 12);
       localStorage.setItem("recently_viewed", JSON.stringify(recentlyViewed));
+      renderRecentlyViewed();
+    }
+    function clearRecentlyViewed() {
+      recentlyViewed = [];
+      localStorage.setItem("recently_viewed", "[]");
       renderRecentlyViewed();
     }
     function renderRecentlyViewed() {
       const section = document.getElementById("recently-viewed-section");
       const list = document.getElementById("recently-viewed-list");
+      const clearBtn = document.querySelector(".clear-recent-btn");
       if (!recentlyViewed.length) {
         section.style.display = "none";
+        clearBtn.style.display = "none";
         return;
       }
       section.style.display = "";
+      clearBtn.style.display = "";
       list.innerHTML = "";
-      recentlyViewed.forEach(movie => {
+      recentlyViewed.sort((a, b) => b.timestamp - a.timestamp).forEach(item => {
         const div = document.createElement("div");
         div.className = "movie-col";
         div.innerHTML = `
           <div class="movie-poster-wrapper" tabindex="0">
-            <img src="${movie.poster_path ? imageBaseUrl + movie.poster_path : 'img/no-poster.png'}" alt="${movie.title}" class="img-fluid movie-poster-img">
+            <img src="${item.poster_path ? imageBaseUrl + 'w92' + item.poster_path : 'img/no-poster.png'}" alt="${item.title}" class="img-fluid movie-poster-img">
           </div>
           <div class="movie-metadata">
-            <span class="movie-title" title="${movie.title}">${movie.title}</span>
-            <span class="movie-year">${movie.release_date ? movie.release_date.slice(0,4) : ""}</span>
+            <span class="movie-title" title="${item.title}">${item.title}</span>
+            <span class="movie-year">${item.release_date ? item.release_date.slice(0,4) : ""}</span>
           </div>
         `;
+        const img = div.querySelector('.movie-poster-img');
+        if (item.poster_path) {
+          loadProgressiveImage(img, imageBaseUrl + 'w500' + item.poster_path);
+        }
         div.onclick = () => {
-          fetch(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${apiKey}`)
-            .then(r=>r.json()).then(showDetails);
+          fetch(`https://api.themoviedb.org/3/${item.isTv ? 'tv' : 'movie'}/${item.id}?api_key=${apiKey}`)
+            .then(r=>r.json()).then(data => item.isTv ? showTvDetails(data) : showDetails(data));
         };
         list.appendChild(div);
       });
@@ -739,8 +793,8 @@
         movieDiv.className = 'movie-col';
         movieDiv.innerHTML = `
           <div class="movie-poster-wrapper" tabindex="0">
-            <img src="${item.poster_path ? imageBaseUrl + item.poster_path : 'img/no-poster.png'}" alt="${isTv ? item.name : item.title}" class="img-fluid movie-poster-img">
-            <button class="play-btn-centered" type="button" title="${isTv ? "View TV Show" : "Play Movie"}">
+            <img src="${item.poster_path ? imageBaseUrl + 'w92' + item.poster_path : 'img/no-poster.png'}" alt="${isTv ? item.name : item.title}" class="img-fluid movie-poster-img">
+            <button class="play-btn-centered" type="button" title="${isTv ? "View TV Show" : "Play Movie"}" aria-label="${isTv ? "View TV Show" : "Play Movie"}">
               <i class="fas fa-${isTv ? "tv" : "play"}"></i>
             </button>
             ${!isTv ? `<button class="favorite-btn${isFavorite(item.id)?' favorited':''}" title="Add to favorites" aria-label="Add to favorites" tabindex="0">
@@ -751,6 +805,10 @@
             <span class="movie-year">${(isTv ? item.first_air_date : item.release_date) ? (isTv ? item.first_air_date : item.release_date).slice(0,4) : ""}</span>
           </div>
         `;
+        const img = movieDiv.querySelector('.movie-poster-img');
+        if (item.poster_path) {
+          loadProgressiveImage(img, imageBaseUrl + 'w500' + item.poster_path);
+        }
         movieDiv.querySelector('.play-btn-centered').onclick = () => isTv ? showTvDetails(item) : showDetails(item);
         if (!isTv) {
           movieDiv.querySelector('.favorite-btn').onclick = (e) => {
@@ -791,7 +849,13 @@
       addRecentlyViewed(movie);
       document.getElementById('modal-title').textContent = movie.title;
       document.getElementById('modal-description').textContent = movie.overview || '';
-      document.getElementById('modal-image').src = movie.poster_path ? imageBaseUrl + movie.poster_path : 'img/no-poster.png';
+      const modalImg = document.getElementById('modal-image');
+      if (movie.poster_path) {
+        loadProgressiveImage(modalImg, imageBaseUrl + 'w500' + movie.poster_path);
+      } else {
+        modalImg.src = 'img/no-poster.png';
+        modalImg.classList.add('loaded');
+      }
       document.getElementById('modal-rating').innerHTML = getStars(movie.vote_average || 0) + ` (${movie.vote_average||'N/A'})`;
       document.getElementById('modal-genres').innerHTML = (movie.genre_ids || movie.genres || []).map(gid=>{
         let g = typeof gid === "object" ? gid : ((window.genreList||[]).find(x=>x.id===gid)||{name:""});
@@ -822,14 +886,20 @@
             let html = `<div style="margin-top:1.3em;"><b>Similar Movies:</b><div style="display:flex;gap:1em;overflow-x:auto;padding-top:0.7em;">`;
             data.results.slice(0,8).forEach(m=>{
               html += `<div style="width:110px;text-align:center;">
-                <img src="${m.poster_path ? imageBaseUrl + m.poster_path : 'img/no-poster.png'}" alt="${m.title}" style="width:100px;border-radius:7px;cursor:pointer;" onclick="showDetailsFromId(${m.id})">
+                <img src="${m.poster_path ? imageBaseUrl + 'w92' + m.poster_path : 'img/no-poster.png'}" alt="${m.title}" style="width:100px;border-radius:7px;cursor:pointer;" class="similar-poster">
                 <div style="font-size:0.93em;margin-top:0.3em;">${m.title}</div>
               </div>`;
             });
             html += `</div></div>`;
             document.getElementById('similar-movies').innerHTML = html;
+            document.querySelectorAll('.similar-poster').forEach(img => {
+              if (img.src.includes('w92')) {
+                loadProgressiveImage(img, img.src.replace('w92', 'w500'));
+              }
+            });
           }
         });
+      document.querySelector('.iframe-spinner').style.display = 'block';
     }
     window.showDetailsFromId = function(id) {
       fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`)
@@ -839,30 +909,47 @@
       let stars = Math.round((vote || 0) / 2);
       return '★'.repeat(stars) + '☆'.repeat(5-stars);
     }
-    function resetIframeForVidsrc(iframe, embedURL, playOverlay) {
-      // Briefly clear src and restore it to force a reload
+    function resetIframeForVidsrc(iframe, embedURL, playOverlay, spinner) {
       iframe.src = '';
+      spinner.style.display = 'block';
       setTimeout(() => {
         iframe.src = embedURL;
         iframe.onload = function() {
+          spinner.style.display = 'none';
           try {
             iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
             playOverlay.style.display = 'none';
           } catch (e) {
             console.warn('Auto-play failed after reset:', e);
             playOverlay.style.display = 'flex';
-            const modalBody = iframe.closest('.modal-content').querySelector('.modal-body');
-            const errorMsg = document.createElement('p');
-            errorMsg.className = 'error-state';
-            errorMsg.textContent = 'Auto-play blocked or server unavailable. Click the play button to start the video.';
-            errorMsg.style.marginTop = '1rem';
-            if (!modalBody.querySelector('.error-state')) {
-              modalBody.appendChild(errorMsg);
-              setTimeout(() => errorMsg.remove(), 5000);
-            }
+            showIframeError(iframe, 'Auto-play blocked or server unavailable. Click the play button to start the video.');
           }
         };
-      }, 100); // Short delay to ensure reset
+        iframe.onerror = () => handleIframeError(iframe, embedURL, spinner, playOverlay);
+      }, 100);
+    }
+    function showIframeError(iframe, message) {
+      const modalBody = iframe.closest('.modal-content').querySelector('.modal-body');
+      const errorMsg = document.createElement('p');
+      errorMsg.className = 'error-state';
+      errorMsg.textContent = message;
+      errorMsg.style.marginTop = '1rem';
+      if (!modalBody.querySelector('.error-state')) {
+        modalBody.appendChild(errorMsg);
+        setTimeout(() => errorMsg.remove(), 5000);
+      }
+    }
+    function handleIframeError(iframe, embedURL, spinner, playOverlay) {
+      spinner.style.display = 'none';
+      if (embedURL.includes('player.videasy.net')) {
+        const modalBody = iframe.closest('.modal-content').querySelector('.modal-body');
+        const serverSelect = document.getElementById('server');
+        serverSelect.value = 'vidsrc.me';
+        changeServer();
+        showIframeError(iframe, 'Primary server failed. Switched to backup server (Vidsrc.me).');
+      } else {
+        showIframeError(iframe, 'Video failed to load. Try another server or check your connection.');
+      }
     }
     function changeServer() {
       if (!lastModalMovie) return;
@@ -878,47 +965,39 @@
       }
       const iframe = document.getElementById('modal-video');
       const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
+      const spinner = iframe.parentElement.querySelector('.iframe-spinner');
+      spinner.style.display = 'block';
       if (server === "vidsrc.cc") {
-        // Force reload for vidsrc.cc to mimic switching behavior
-        resetIframeForVidsrc(iframe, embedURL, playOverlay);
+        resetIframeForVidsrc(iframe, embedURL, playOverlay, spinner);
       } else {
         iframe.src = embedURL;
         iframe.onload = function() {
+          spinner.style.display = 'none';
           try {
             iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
             playOverlay.style.display = 'none';
           } catch (e) {
             console.warn('Auto-play failed:', e);
             playOverlay.style.display = 'flex';
-            const modalBody = document.getElementById('modal-content-movie').querySelector('.modal-body');
-            const errorMsg = document.createElement('p');
-            errorMsg.className = 'error-state';
-            errorMsg.textContent = 'Auto-play blocked or server unavailable. Click the play button to start the video.';
-            errorMsg.style.marginTop = '1rem';
-            if (!modalBody.querySelector('.error-state')) {
-              modalBody.appendChild(errorMsg);
-              setTimeout(() => errorMsg.remove(), 5000);
-            }
+            showIframeError(iframe, 'Auto-play blocked or server unavailable. Click the play button to start the video.');
           }
         };
+        iframe.onerror = () => handleIframeError(iframe, embedURL, spinner, playOverlay);
       }
     }
     function triggerIframePlay(iframeId) {
       const iframe = document.getElementById(iframeId);
+      const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
+      const spinner = iframe.parentElement.querySelector('.iframe-spinner');
+      spinner.style.display = 'block';
       try {
         iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-        iframe.parentElement.querySelector('.iframe-play-overlay').style.display = 'none';
+        playOverlay.style.display = 'none';
+        spinner.style.display = 'none';
       } catch (e) {
         console.warn('Manual play failed:', e);
-        const modalBody = iframe.closest('.modal-content').querySelector('.modal-body');
-        const errorMsg = document.createElement('p');
-        errorMsg.className = 'error-state';
-        errorMsg.textContent = 'Playback failed. Try switching servers or check your connection.';
-        errorMsg.style.marginTop = '1rem';
-        if (!modalBody.querySelector('.error-state')) {
-          modalBody.appendChild(errorMsg);
-          setTimeout(() => errorMsg.remove(), 5000);
-        }
+        spinner.style.display = 'none';
+        showIframeError(iframe, 'Playback failed. Try switching servers or check your connection.');
       }
     }
     function closeModal() {
@@ -927,7 +1006,6 @@
       document.getElementById('tv-episode-player').style.display = "none";
       document.getElementById('tv-episode-player').src = "";
       document.getElementById('tv-episode-next-btn').style.display = "none";
-      // Unlock orientation when closing modal
       if (isMobileOrTablet() && screen.orientation && screen.orientation.unlock) {
         screen.orientation.unlock().catch(err => console.warn('Orientation unlock failed:', err));
       }
@@ -942,7 +1020,13 @@
       tvModalData.tvId = tvInfo.id;
       tvModalData.seasons = tvInfo.seasons;
       document.getElementById('tv-modal-title').textContent = tvInfo.name;
-      document.getElementById('tv-modal-image').src = tvInfo.poster_path ? imageBaseUrl + tvInfo.poster_path : 'img/no-poster.png';
+      const tvModalImg = document.getElementById('tv-modal-image');
+      if (tvInfo.poster_path) {
+        loadProgressiveImage(tvModalImg, imageBaseUrl + 'w500' + tvInfo.poster_path);
+      } else {
+        tvModalImg.src = 'img/no-poster.png';
+        tvModalImg.classList.add('loaded');
+      }
       document.getElementById('tv-modal-description').textContent = tvInfo.overview || '';
       document.getElementById('tv-modal-air-date').textContent = tvInfo.first_air_date || '';
       document.getElementById('tv-modal-total-seasons').textContent = tvInfo.number_of_seasons;
@@ -951,10 +1035,11 @@
       document.getElementById('tv-episode-player').style.display = "none";
       document.getElementById('tv-episode-player').src = "";
       document.getElementById('tv-episode-next-btn').style.display = "none";
+      addRecentlyViewed(tv);
       for (const season of tvInfo.seasons) {
         const seasonDiv = document.createElement("div");
         seasonDiv.className = "season-block";
-        seasonDiv.innerHTML = `<div class="season-header" tabindex="0">${season.name} (${season.episode_count} eps)</div>
+        seasonDiv.innerHTML = `<div class="season-header" tabindex="0" aria-label="Toggle ${season.name}">${season.name} (${season.episode_count} eps)</div>
           <div class="episodes-list" style="display:none;"></div>`;
         seasonDiv.querySelector(".season-header").onclick = async function() {
           const epList = seasonDiv.querySelector(".episodes-list");
@@ -964,13 +1049,19 @@
               epList.innerHTML = (data.episodes || []).map((ep, idx) => `
                 <div class="episode-block">
                   <span>Ep ${ep.episode_number}: ${ep.name || "(Untitled)"} <small>${ep.air_date || ""}</small></span>
-                  <button class="tv-episode-play-btn" onclick="event.stopPropagation();playTvEpisode('${tv.id}','${season.season_number}','${ep.episode_number}')">Play</button>
+                  <button class="tv-episode-play-btn" onclick="event.stopPropagation();playTvEpisode('${tv.id}','${season.season_number}','${ep.episode_number}')" tabindex="0" aria-label="Play episode ${ep.episode_number}">Play</button>
                 </div>
               `).join("");
             }
             epList.style.display = "";
           } else {
             epList.style.display = "none";
+          }
+        };
+        seasonDiv.querySelector(".season-header").onkeydown = function(e) {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            this.click();
           }
         };
         document.getElementById('tv-modal-seasons-list').appendChild(seasonDiv);
@@ -981,7 +1072,6 @@
       document.getElementById('tv-episode-player').style.display = "none";
       document.getElementById('tv-episode-player').src = "";
       document.getElementById('tv-episode-next-btn').style.display = "none";
-      // Unlock orientation when closing TV modal
       if (isMobileOrTablet() && screen.orientation && screen.orientation.unlock) {
         screen.orientation.unlock().catch(err => console.warn('Orientation unlock failed:', err));
       }
@@ -989,31 +1079,28 @@
     window.playTvEpisode = function(tvId, seasonNum, episodeNum) {
       const iframe = document.getElementById('tv-episode-player');
       const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
+      const spinner = iframe.parentElement.querySelector('.iframe-spinner');
       iframe.style.display = "";
-      iframe.src = `https://player.videasy.net/tv/${tvId}/${seasonNum}/${episodeNum}?autoplay=1`;
+      const embedURL = `https://player.videasy.net/tv/${tvId}/${seasonNum}/${episodeNum}?autoplay=1`;
+      spinner.style.display = 'block';
+      iframe.src = embedURL;
       tvModalData.season = parseInt(seasonNum);
       tvModalData.episode = parseInt(episodeNum);
       setTimeout(() => {
         iframe.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 250);
       iframe.onload = function() {
+        spinner.style.display = 'none';
         try {
           iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
           playOverlay.style.display = 'none';
         } catch (e) {
           console.warn('Auto-play failed:', e);
           playOverlay.style.display = 'flex';
-          const modalBody = document.getElementById('modal-content-tv').querySelector('.modal-body');
-          const errorMsg = document.createElement('p');
-          errorMsg.className = 'error-state';
-          errorMsg.textContent = 'Auto-play blocked by browser. Click the play button to start the episode.';
-          errorMsg.style.marginTop = '1rem';
-          if (!modalBody.querySelector('.error-state')) {
-            modalBody.appendChild(errorMsg);
-            setTimeout(() => errorMsg.remove(), 5000);
-          }
+          showIframeError(iframe, 'Auto-play blocked by browser. Click the play button to start the episode.');
         }
       };
+      iframe.onerror = () => handleIframeError(iframe, embedURL, spinner, playOverlay);
       const nextBtn = document.getElementById('tv-episode-next-btn');
       let next = getNextEpisode(tvModalData.season, tvModalData.episode);
       if (next) {
@@ -1108,7 +1195,48 @@
       }
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
+    // Keyboard Navigation
+    function setupModalKeyboardNavigation() {
+      const modal = document.getElementById('modal');
+      modal.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+          const focusable = modal.querySelectorAll('button, [href], select, [tabindex="0"]');
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      });
+      document.querySelectorAll('.close').forEach(closeBtn => {
+        closeBtn.onkeydown = (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            closeBtn.click();
+          }
+        };
+      });
+      document.querySelectorAll('.iframe-play-overlay').forEach(playBtn => {
+        playBtn.onkeydown = (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            playBtn.click();
+          }
+        };
+      });
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      const movieIframe = document.getElementById('modal-video');
+      const tvIframe = document.getElementById('tv-episode-player');
+      handleFullscreenOrientation(movieIframe);
+      handleFullscreenOrientation(tvIframe);
+      setupModalKeyboardNavigation();
       document.getElementById('nav-movies').onclick = function(e) { e.preventDefault(); switchMode('popular'); };
       document.getElementById('nav-tvshows').onclick = function(e) { e.preventDefault(); switchMode('tv'); };
       document.getElementById('nav-anime').onclick = function(e) { e.preventDefault(); switchMode('anime'); };
@@ -1148,7 +1276,7 @@
           currentMode = "search";
           currentQuery = q;
           sectionTitle.textContent = `Search Results for "${q}"`;
-          setActiveNav(""); 
+          setActiveNav("");
           resetInfiniteScroll();
         } else {
           switchMode('popular');
