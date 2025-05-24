@@ -187,8 +187,8 @@
       display: block;
     }
     @keyframes spin {
-      0% { transform: rotate(0deg);}
-      100% { transform: rotate(360deg);}
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
     .empty-state, .error-state {
       color: #bbb;
@@ -305,7 +305,7 @@
       min-width: 110px;
       max-width: 110px;
       flex: 0 0 110px !important;
-      padding-bottom: 0;
+      padding-bottom: 0SEX;
     }
     #recently-viewed-list .movie-title {
       font-size: 0.9em;
@@ -326,7 +326,7 @@
       font-weight: bold;
       font-size: 1.08em;
       cursor: pointer;
-      margin-bottom: 0.4em;
+      margin-bottom: adhar.4em;
       color: #2196f3;
     }
     .episodes-list {
@@ -413,6 +413,10 @@
           <div class="stars" id="modal-rating"></div>
           <div class="modal-genre" id="modal-genres"></div>
           <p id="modal-description"></p>
+          <div class="modal-cast" id="modal-cast"></div>
+          <div class="modal-crew" id="modal-crew"></div>
+          <div class="modal-trailer" id="modal-trailer"></div>
+          <button class="share-btn" id="share-movie-btn" onclick="shareMovie()">Share</button>
         </div>
       </div>
       <div class="server-selector">
@@ -429,6 +433,7 @@
           <i class="fas fa-play"></i>
         </button>
       </div>
+      <div id="similar-movies" style="padding: 1rem 2rem;"></div>
     </div>
     <!-- TV Modal Content (hidden unless TV show is shown) -->
     <div class="modal-content" id="modal-content-tv" style="display:none;">
@@ -771,6 +776,31 @@
       let stars = Math.round((vote || 0) / 2);
       return '★'.repeat(stars) + '☆'.repeat(5-stars);
     }
+    function resetIframeForVidsrc(iframe, embedURL, playOverlay) {
+      // Briefly clear src and restore it to force a reload
+      iframe.src = '';
+      setTimeout(() => {
+        iframe.src = embedURL;
+        iframe.onload = function() {
+          try {
+            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+            playOverlay.style.display = 'none';
+          } catch (e) {
+            console.warn('Auto-play failed after reset:', e);
+            playOverlay.style.display = 'flex';
+            const modalBody = document.getElementById('modal-content-movie').querySelector('.modal-body');
+            const errorMsg = document.createElement('p');
+            errorMsg.className = 'error-state';
+            errorMsg.textContent = 'Auto-play blocked or server unavailable. Click the play button to start the video.';
+            errorMsg.style.marginTop = '1rem';
+            if (!modalBody.querySelector('.error-state')) {
+              modalBody.appendChild(errorMsg);
+              setTimeout(() => errorMsg.remove(), 5000);
+            }
+          }
+        };
+      }, 100); // Short delay to ensure reset
+    }
     function changeServer() {
       if (!lastModalMovie) return;
       const server = document.getElementById('server').value;
@@ -785,25 +815,30 @@
       }
       const iframe = document.getElementById('modal-video');
       const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
-      iframe.src = embedURL;
-      iframe.onload = function() {
-        try {
-          iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-          playOverlay.style.display = 'none';
-        } catch (e) {
-          console.warn('Auto-play failed:', e);
-          playOverlay.style.display = 'flex';
-          const modalBody = document.getElementById('modal-content-movie').querySelector('.modal-body');
-          const errorMsg = document.createElement('p');
-          errorMsg.className = 'error-state';
-          errorMsg.textContent = 'Auto-play blocked or server unavailable. Click the play button to start the video.';
-          errorMsg.style.marginTop = '1rem';
-          if (!modalBody.querySelector('.error-state')) {
-            modalBody.appendChild(errorMsg);
-            setTimeout(() => errorMsg.remove(), 5000);
+      if (server === "vidsrc.cc") {
+        // Force reload for vidsrc.cc to mimic switching behavior
+        resetIframeForVidsrc(iframe, embedURL, playOverlay);
+      } else {
+        iframe.src = embedURL;
+        iframe.onload = function() {
+          try {
+            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+            playOverlay.style.display = 'none';
+          } catch (e) {
+            console.warn('Auto-play failed:', e);
+            playOverlay.style.display = 'flex';
+            const modalBody = document.getElementById('modal-content-movie').querySelector('.modal-body');
+            const errorMsg = document.createElement('p');
+            errorMsg.className = 'error-state';
+            errorMsg.textContent = 'Auto-play blocked or server unavailable. Click the play button to start the video.';
+            errorMsg.style.marginTop = '1rem';
+            if (!modalBody.querySelector('.error-state')) {
+              modalBody.appendChild(errorMsg);
+              setTimeout(() => errorMsg.remove(), 5000);
+            }
           }
-        }
-      };
+        };
+      }
     }
     function triggerIframePlay(iframeId) {
       const iframe = document.getElementById(iframeId);
