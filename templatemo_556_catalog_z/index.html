@@ -409,6 +409,28 @@
       width: 98%;
       margin: 1rem auto 0 auto;
     }
+    /* Category Search Styles */
+    .category-search-form {
+      margin-top: 1rem;
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      display: none;
+    }
+    #category-search-form .tm-search-input {
+      background: #1a1f25;
+      border: 1px solid #222;
+      color: #eee;
+    }
+    #category-search-form .tm-search-btn {
+      background: #1976d2;
+      border: none;
+      color: #fff;
+    }
+    #category-search-form .tm-search-btn:hover,
+    #category-search-form .tm-search-btn:focus {
+      background: #2196f3;
+    }
   </style>
 </head>
 <body>
@@ -527,6 +549,14 @@
       </h2>
       <div class="col-6 d-flex justify-content-end align-items-center"></div>
     </div>
+    <div class="row mb-4">
+      <form class="d-flex tm-search-form category-search-form" id="category-search-form" autocomplete="off" style="width:100%;max-width:600px;margin:0 auto;display:none;">
+        <input class="form-control tm-search-input" type="search" id="category-search-input" placeholder="Search within this category..." aria-label="Search within category">
+        <button class="btn btn-outline-success tm-search-btn" type="submit">
+          <i class="fas fa-search"></i>
+        </button>
+      </form>
+    </div>
     <div class="row tm-mb-90 flex-wrap" id="movie-list" style="margin-left:0;margin-right:0;">
     </div>
     <div id="infinite-loader" style="display:none;"><div class="spinner"></div></div>
@@ -577,6 +607,7 @@
     let favorites = JSON.parse(localStorage.getItem('favorites') || "[]");
     let netflixType = "movie"; // "movie" or "tv"
     let tvModalData = { tvId: null, season: null, episode: null, seasons: [] };
+    let categoryItems = []; // Store the full list of items for the current category
 
     // Check if device is mobile or tablet
     function isMobileOrTablet() {
@@ -651,7 +682,8 @@
       Promise.all(favorites.map(id=>
         fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`).then(r=>r.json())
       )).then(arr=>{
-        renderMovies(arr.filter(m=>m && m.id), true);
+        categoryItems = arr.filter(m=>m && m.id); // Store for category search
+        renderMovies(categoryItems, true);
       });
     }
     let recentlyViewed = JSON.parse(localStorage.getItem("recently_viewed") || "[]");
@@ -770,16 +802,28 @@
       if (isLoading || reachedEnd) return;
       isLoading = true;
       document.getElementById("infinite-loader").style.display = "";
-      let movies = await fetchMoviesInf(infCurrentPage);
+      let movies = await fetchAndStoreItems(infCurrentPage);
+      if (movies && movies.length > 0 && !clear) {
+        renderMovies(movies, false);
+      }
+      isLoading = false;
+      document.getElementById("infinite-loader").style.display = "none";
+    }
+    async function fetchAndStoreItems(page = 1) {
+      let movies = await fetchMoviesInf(page);
       if (movies && movies.length > 0) {
-        renderMovies(movies, clear);
+        if (page === 1) {
+          categoryItems = movies; // Reset for first page
+        } else {
+          categoryItems = [...categoryItems, ...movies]; // Append for subsequent pages
+        }
+        renderMovies(movies, page === 1);
         infCurrentPage++;
         if (infCurrentPage > totalPages) reachedEnd = true;
       } else {
         reachedEnd = true;
       }
-      isLoading = false;
-      document.getElementById("infinite-loader").style.display = "none";
+      return movies;
     }
 
     // MODAL - MOVIE
@@ -1047,6 +1091,7 @@
       infCurrentPage = 1;
       reachedEnd = false;
       document.getElementById("movie-list").innerHTML = "";
+      categoryItems = []; // Reset category items
       loadMoreMovies(true);
     }
     window.addEventListener("scroll", function() {
@@ -1065,19 +1110,35 @@
       currentQuery = "";
       document.getElementById('nav-favorites').classList.remove('favorited');
       let sectionTitle = document.getElementById('section-title');
+      const categorySearchForm = document.getElementById('category-search-form');
+      const categorySearchInput = document.getElementById('category-search-input');
+      
+      // Update section title and show category search bar
       if (newMode === "anime") {
         sectionTitle.textContent = "Trending Anime Movies";
+        categorySearchForm.style.display = 'flex';
+        categorySearchInput.placeholder = "Search Trending Anime Movies...";
       } else if (newMode === "tagalog") {
         sectionTitle.textContent = "Trending Tagalog Movies";
+        categorySearchForm.style.display = 'flex';
+        categorySearchInput.placeholder = "Search Trending Tagalog Movies...";
       } else if (newMode === "favorites") {
         sectionTitle.textContent = "Your Favorite Movies";
         document.getElementById('nav-favorites').classList.add('favorited');
+        categorySearchForm.style.display = 'flex';
+        categorySearchInput.placeholder = "Search Your Favorite Movies...";
       } else if (newMode === "tv") {
         sectionTitle.textContent = "Trending TV Shows";
+        categorySearchForm.style.display = 'flex';
+        categorySearchInput.placeholder = "Search Trending TV Shows...";
       } else if (newMode === "netflix") {
         sectionTitle.textContent = `Trending Netflix ${netflixType === "movie" ? "Movies" : "TV Shows"}`;
+        categorySearchForm.style.display = 'flex';
+        categorySearchInput.placeholder = `Search Trending Netflix ${netflixType === "movie" ? "Movies" : "TV Shows"}...`;
       } else {
         sectionTitle.textContent = "Trending Movies";
+        categorySearchForm.style.display = 'flex';
+        categorySearchInput.placeholder = "Search Trending Movies...";
       }
       setActiveNav(newMode);
       if (currentMode === "favorites") {
@@ -1086,6 +1147,8 @@
       } else {
         resetInfiniteScroll();
       }
+      // Reset category search input
+      categorySearchInput.value = "";
     }
     function setActiveNav(mode) {
       document.getElementById('nav-movies').classList.remove('active');
@@ -1148,18 +1211,32 @@
           currentMode = "search";
           currentQuery = q;
           sectionTitle.textContent = `Search Results for "${q}"`;
+          document.getElementById('category-search-form').style.display = 'none'; // Hide category search
           setActiveNav(""); 
           resetInfiniteScroll();
         } else {
           switchMode('popular');
-          return;
         }
       };
       input.addEventListener('input', function() {
-        if (currentMode === "search" && input.value.trim().length === 0) {
+        if (currentMode === "search" && this.value.trim().length === 0) {
           switchMode('popular');
+          document.getElementById('category-search-form').style.display = 'flex'; // Show category search again
         }
       });
+      document.getElementById('category-search-form').onsubmit = function(e) {
+        e.preventDefault();
+        const query = document.getElementById('category-search-input').value.trim().toLowerCase();
+        if (!query) {
+          renderMovies(categoryItems, true); // Reset to full list if query is empty
+          return;
+        }
+        const filteredItems = categoryItems.filter(item => {
+          const title = (item.title || item.name || "").toLowerCase();
+          return title.includes(query);
+        });
+        renderMovies(filteredItems, true);
+      };
       renderRecentlyViewed();
     });
 
