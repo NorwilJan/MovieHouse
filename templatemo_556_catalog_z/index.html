@@ -440,6 +440,12 @@
     .moviedck #category-search-form .tm-search-btn:focus {
       background: var(--primary-hover);
     }
+    .moviedck #nav-kdrama::before {
+      content: '\f26c';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      margin-right: 8px;
+    }
   </style>
 </head>
 <body>
@@ -535,6 +541,9 @@
             <a class="nav-link" id="nav-netflix" href="#" aria-label="Trending Netflix"><i class="fab fa-netflix"></i> Trending Netflix</a>
           </li>
           <li class="nav-item">
+            <a class="nav-link" id="nav-kdrama" href="#" aria-label="Trending K-Drama">Trending K-Drama</a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link" id="nav-favorites" href="#" title="Favorites" aria-label="Favorites"><i class="fas fa-heart"></i> Favorites</a>
           </li>
         </ul>
@@ -623,7 +632,7 @@
       let netflixType = "movie";
       let tvModalData = { tvId: null, season: null, episode: null, seasons: [] };
       let categoryItems = [];
-      let movieParts = []; // Store movie parts (sequels)
+      let movieParts = [];
 
       // Utility to show error messages
       function showError(message, container = document.getElementById('movie-list')) {
@@ -763,6 +772,8 @@
           } else {
             url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`;
           }
+        } else if (currentMode === "kdrama") {
+          url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_original_language=ko&sort_by=popularity.desc&page=${page}`;
         }
         try {
           const response = await fetch(url);
@@ -872,7 +883,7 @@
         const partSelect = document.getElementById('movie-part');
         partsSelector.style.display = 'none';
         partSelect.innerHTML = '';
-        movieParts = [{ id: movie.id, title: movie.title }]; // Include current movie as Part 1
+        movieParts = [{ id: movie.id, title: movie.title }];
 
         try {
           const [movieDetails, credits, videos, similar] = await Promise.all([
@@ -882,19 +893,16 @@
             fetch(`https://api.themoviedb.org/3/movie/${movie.id}/similar?api_key=${apiKey}`).then(r => r.json())
           ]);
 
-          // Populate cast and crew
           let cast = (credits.cast || []).slice(0, 5).map(c => c.name).join(', ');
           let director = (credits.crew || []).find(c => c.job === "Director");
           document.getElementById('modal-cast').innerHTML = cast ? `<strong>Cast:</strong> ${cast}` : '';
           document.getElementById('modal-crew').innerHTML = director ? `<strong>Director:</strong> ${director.name}` : '';
 
-          // Populate trailer
           let yt = (videos.results || []).find(v => v.site === "YouTube" && v.type === "Trailer");
           if (yt) {
             document.getElementById('modal-trailer').innerHTML = `<a href="https://youtube.com/watch?v=${yt.key}" target="_blank" rel="noopener">▶ Watch Official Trailer</a>`;
           }
 
-          // Fetch movie collection for sequels
           if (movieDetails.belongs_to_collection) {
             const collection = await fetch(`https://api.themoviedb.org/3/collection/${movieDetails.belongs_to_collection.id}?api_key=${apiKey}`).then(r => r.json());
             if (collection.parts && collection.parts.length > 1) {
@@ -904,14 +912,12 @@
             }
           }
 
-          // If no collection, use similar movies as fallback
           if (movieParts.length === 1 && similar.results && similar.results.length) {
             movieParts = movieParts.concat(similar.results
               .slice(0, 3)
               .map(m => ({ id: m.id, title: m.title })));
           }
 
-          // Populate parts selector
           if (movieParts.length > 1) {
             partsSelector.style.display = 'flex';
             partSelect.innerHTML = '';
@@ -921,14 +927,13 @@
               option.textContent = `Part ${index + 1}: ${part.title}`;
               partSelect.appendChild(option);
             });
-            partSelect.value = movie.id; // Set current movie as default
+            partSelect.value = movie.id;
           }
 
-          // Populate similar movies
           if (similar.results && similar.results.length) {
             let html = `<div style="margin-top: 0.3em;"><b>Similar Movies:</b></div><div style="display: flex; gap: 1em; margin-top:0.5em;padding-top:0.7em; overflow-x: auto;">`;
             similar.results.slice(0, 5).forEach(m => {
-              if (movieParts.some(p => p.id === m.id)) return; // Skip if already in parts
+              if (movieParts.some(p => p.id === m.id)) return;
               html += `
                 <div style="text-align: center; min-width: 100px;">
                   <img src="${m.poster_path ? imageBaseUrl + m.poster_path : 'https://via.placeholder.com/150'}" alt="${m.title}" style="width:100px;border-radius:7px;cursor:pointer;">
@@ -951,10 +956,9 @@
         }
 
         document.getElementById('server').value = "player.videasy.net";
-        changeServer(true); // Load initial server
+        changeServer(true);
       }
 
-      // Update server and part change handler
       function changeServer(auto = true, movieId = lastModalMovie?.id) {
         if (!movieId) return;
         const serverSelect = document.getElementById('server');
@@ -1032,7 +1036,7 @@
         document.getElementById('tv-episode-player').style.display = "none";
         document.getElementById('tv-episode-player').src = "";
         document.getElementById('tv-episode-next-btn').style.display = "none";
-        movieParts = []; // Reset parts
+        movieParts = [];
         if (isMobileOrTablet() && screen.orientation && screen.orientation.unlock) {
           screen.orientation.unlock().catch(err => console.warn('Orientation unlock failed:', err));
         }
@@ -1192,6 +1196,10 @@
           sectionTitle.textContent = `Trending Netflix ${netflixType === "movie" ? "Movies" : "TV Shows"}`;
           categorySearchForm.style.display = 'flex';
           categorySearchInput.placeholder = `Search Trending Netflix ${netflixType === "movie" ? "Movies" : "TV Shows"}...`;
+        } else if (newMode === "kdrama") {
+          sectionTitle.textContent = "Trending K-Drama";
+          categorySearchForm.style.display = 'flex';
+          categorySearchInput.placeholder = "Search Trending K-Drama...";
         } else {
           sectionTitle.textContent = "Trending Movies";
           categorySearchForm.style.display = 'flex';
@@ -1212,6 +1220,7 @@
         document.getElementById('nav-anime').classList.remove('active');
         document.getElementById('nav-tagalog').classList.remove('active');
         document.getElementById('nav-netflix').classList.remove('active');
+        document.getElementById('nav-kdrama').classList.remove('active');
         if (mode === "anime") {
           document.getElementById('nav-anime').classList.add('active');
         } else if (mode === "tagalog") {
@@ -1220,8 +1229,9 @@
           document.getElementById('nav-tvshows').classList.add('active');
         } else if (mode === "netflix") {
           document.getElementById('nav-netflix').classList.add('active');
+        } else if (mode === "kdrama") {
+          document.getElementById('nav-kdrama').classList.add('active');
         } else if (mode === "favorites") {
-          // handled separately
         } else {
           document.getElementById('nav-movies').classList.add('active');
         }
@@ -1238,6 +1248,7 @@
         document.getElementById('nav-tvshows').addEventListener('click', (e) => { e.preventDefault(); switchMode('tv'); });
         document.getElementById('nav-anime').addEventListener('click', (e) => { e.preventDefault(); switchMode('anime'); });
         document.getElementById('nav-tagalog').addEventListener('click', (e) => { e.preventDefault(); switchMode('tagalog'); });
+        document.getElementById('nav-kdrama').addEventListener('click', (e) => { e.preventDefault(); switchMode('kdrama'); });
         document.getElementById('nav-favorites').addEventListener('click', (e) => { e.preventDefault(); switchMode('favorites'); });
         document.getElementById('nav-netflix').addEventListener('click', (e) => {
           e.preventDefault();
