@@ -900,28 +900,24 @@
             if (collection.parts && collection.parts.length > 1) {
               movieParts = collection.parts
                 .sort((a, b) => new Date(a.release_date || '9999-12-31') - new Date(b.release_date || '9999-12-31'))
-                .filter(p => p.id !== movie.id) // Exclude current movie
-                .map((p, index) => ({ id: p, title: p.title }));
-              // movieParts.unshift({ id: movie.id, title: movie.title }); // Add current movie as first part
+                .map(p => ({ id: p.id, title: p.title }));
             }
           }
 
           // If no collection, use similar movies as fallback
-          if (movieParts.length < 1 && similar.results && similar.results.length) {
-            movieParts = similar.results
-              .slice(0, 3) // Limit to 3
-              .map((m, index) => ({
-                id: m.id}`,
-                title: m.title,
-              }));
+          if (movieParts.length === 1 && similar.results && similar.results.length) {
+            movieParts = movieParts.concat(similar.results
+              .slice(0, 3)
+              .map(m => ({ id: m.id, title: m.title })));
           }
 
           // Populate parts selector
           if (movieParts.length > 1) {
-            partsSelector.style.display = 'block';
+            partsSelector.style.display = 'flex';
+            partSelect.innerHTML = '';
             movieParts.forEach((part, index) => {
-              const option = document.createElement('option");
-              option.value = part.id}`;
+              const option = document.createElement('option');
+              option.value = part.id;
               option.textContent = `Part ${index + 1}: ${part.title}`;
               partSelect.appendChild(option);
             });
@@ -930,20 +926,20 @@
 
           // Populate similar movies
           if (similar.results && similar.results.length) {
-            let html = `<div style="margin-top: 0.3em;"><b>Similar Movies:</b></div><div style="margin-top:0.5em;padding-top:0.7em;">`;
+            let html = `<div style="margin-top: 0.3em;"><b>Similar Movies:</b></div><div style="display: flex; gap: 1em; margin-top:0.5em;padding-top:0.7em; overflow-x: auto;">`;
             similar.results.slice(0, 5).forEach(m => {
               if (movieParts.some(p => p.id === m.id)) return; // Skip if already in parts
               html += `
-                <div style="movie-card: center;">
-                  <img src="${m.poster_path}" ? imageBaseUrl + m.poster_path : 'https://via.placeholder.com/150'}" alt="${m.title}" style="movie-card:100px;border-radius:7px;cursor:pointer;">
-                  <div style="movie-size:0.93em;margin-top:0.3em;">${m.title}</div>
+                <div style="text-align: center; min-width: 100px;">
+                  <img src="${m.poster_path ? imageBaseUrl + m.poster_path : 'https://via.placeholder.com/150'}" alt="${m.title}" style="width:100px;border-radius:7px;cursor:pointer;">
+                  <div style="font-size:0.93em;margin-top:0.3em;">${m.title}</div>
                 </div>`;
             });
             html += `</div>`;
             document.getElementById('similar-movies').innerHTML = html;
-            document.querySelectorAll('#similar-movies').forEach(img => {
+            document.querySelectorAll('#similar-movies img').forEach(img => {
               img.addEventListener('click', () => {
-                fetch(`https://api.themoviedb.org/3/movie/${img.parentNode.innerHTML.match(/id\((\d+)\)/)?.then([1]) || movie.id`?api_key=${apiKey}`)
+                fetch(`https://api.themoviedb.org/3/movie/${img.parentNode.innerHTML.match(/id:(\d+)/)?.[1] || m.id}?api_key=${apiKey}`)
                   .then(r => r.json()).then(showDetails);
               });
             });
@@ -963,7 +959,7 @@
         if (!movieId) return;
         const serverSelect = document.getElementById('server');
         const iframe = document.getElementById('modal-video');
-        const playOverlay = iframe.parentElement.querySelector('.iframe-container');
+        const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
         const servers = ['player.videasy.net', 'vidsrc.cc', 'vidsrc.me', 'vidsrc.to'];
         let currentServer = serverSelect.value;
 
@@ -1012,29 +1008,13 @@
           const currentIndex = servers.indexOf(currentServer);
           tryNextServer(currentIndex !== -1 ? currentIndex : 0);
         } else {
-          resetIframeForVidsrc(iframe, embedURL, playOverlay);
+          tryNextServer(servers.indexOf(currentServer));
         }
       }
 
       function getStars(vote) {
         let stars = Math.round((vote || 0) / 2);
         return '★'.repeat(stars) + '☆'.repeat(5 - stars);
-      }
-      function resetIframeForVidsrc(iframe, embedURL, playOverlay) {
-        iframe.src = '';
-        setTimeout(() => {
-          iframe.src = embedURL;
-          iframe.onload = function() {
-            try {
-              iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-              playOverlay.style.display = 'none';
-            } catch (e) {
-              console.warn('Auto-play failed after reset:', e);
-              playOverlay.style.display = 'flex';
-              showError('Auto-play blocked or server unavailable. Click the play button to start the video.', iframe.closest('.modal-content').querySelector('.modal-body'));
-            }
-          };
-        }, 100);
       }
       function triggerIframePlay(iframeId) {
         const iframe = document.getElementById(iframeId);
