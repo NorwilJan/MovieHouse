@@ -281,10 +281,12 @@
     .moviedck .modal-trailer {
       margin: 12px 0;
     }
-    .moviedck .server-selector {
+    .moviedck .server-selector, .moviedck .parts-selector {
       margin: 1.5rem 0 0 2rem;
+      display: flex;
+      align-items: center;
     }
-    .moviedck .server-selector label {
+    .moviedck .server-selector label, .moviedck .parts-selector label {
       color: var(--text-light);
       margin-right: 1em;
     }
@@ -332,7 +334,7 @@
       flex: 0 0 110px;
       padding-bottom: 0;
     }
-    .moviedck #recently-viewed-list .movie-title {
+    .moviedck .movie-title {
       font-size: 0.9em;
     }
     .moviedck #tv-modal-seasons-list {
@@ -466,6 +468,10 @@
           <option value="vidsrc.me">Vidsrc.me</option>
           <option value="vidsrc.to">Vidsrc.to</option>
         </select>
+      </div>
+      <div class="parts-selector" id="parts-selector" style="display: none;">
+        <label for="movie-part">Select Part:</label>
+        <select id="movie-part"></select>
       </div>
       <div class="iframe-container">
         <iframe id="modal-video" allowfullscreen autoplay></iframe>
@@ -617,6 +623,7 @@
       let netflixType = "movie";
       let tvModalData = { tvId: null, season: null, episode: null, seasons: [] };
       let categoryItems = [];
+      let movieParts = []; // Store movie parts (sequels)
 
       // Utility to show error messages
       function showError(message, container = document.getElementById('movie-list')) {
@@ -859,71 +866,104 @@
         document.getElementById('modal-crew').textContent = "";
         document.getElementById('modal-trailer').innerHTML = "";
         document.getElementById('similar-movies').innerHTML = "";
+
+        // Reset parts selector
+        const partsSelector = document.getElementById('parts-selector');
+        const partSelect = document.getElementById('movie-part');
+        partsSelector.style.display = 'none';
+        partSelect.innerHTML = '';
+        movieParts = [{ id: movie.id, title: movie.title }]; // Include current movie as Part 1
+
         try {
-          const [credits, videos, similar] = await Promise.all([
+          const [movieDetails, credits, videos, similar] = await Promise.all([
+            fetch(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${apiKey}`).then(r => r.json()),
             fetch(`https://api.themoviedb.org/3/movie/${movie.id}/credits?api_key=${apiKey}`).then(r => r.json()),
             fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${apiKey}`).then(r => r.json()),
             fetch(`https://api.themoviedb.org/3/movie/${movie.id}/similar?api_key=${apiKey}`).then(r => r.json())
           ]);
+
+          // Populate cast and crew
           let cast = (credits.cast || []).slice(0, 5).map(c => c.name).join(', ');
           let director = (credits.crew || []).find(c => c.job === "Director");
           document.getElementById('modal-cast').innerHTML = cast ? `<strong>Cast:</strong> ${cast}` : '';
           document.getElementById('modal-crew').innerHTML = director ? `<strong>Director:</strong> ${director.name}` : '';
+
+          // Populate trailer
           let yt = (videos.results || []).find(v => v.site === "YouTube" && v.type === "Trailer");
-          if (yt)
+          if (yt) {
             document.getElementById('modal-trailer').innerHTML = `<a href="https://youtube.com/watch?v=${yt.key}" target="_blank" rel="noopener">▶ Watch Official Trailer</a>`;
-          if (similar && similar.results && similar.results.length) {
-            let html = `<div style="margin-top:1.3em;"><b>Similar Movies:</b><div style="display:flex;gap:1em;overflow-x:auto;padding-top:0.7em;">`;
-            similar.results.slice(0, 8).forEach(m => {
-              html += `<div style="width:110px;text-align:center;">
-                <img src="${m.poster_path ? imageBaseUrl + m.poster_path : 'https://via.placeholder.com/150'}" alt="${m.title}" style="width:100px;border-radius:7px;cursor:pointer;">
-                <div style="font-size:0.93em;margin-top:0.3em;">${m.title}</div>
-              </div>`;
+          }
+
+          // Fetch movie collection for sequels
+          if (movieDetails.belongs_to_collection) {
+            const collection = await fetch(`https://api.themoviedb.org/3/collection/${movieDetails.belongs_to_collection.id}?api_key=${apiKey}`).then(r => r.json());
+            if (collection.parts && collection.parts.length > 1) {
+              movieParts = collection.parts
+                .sort((a, b) => new Date(a.release_date || '9999-12-31') - new Date(b.release_date || '9999-12-31'))
+                .map(p => ({ id: p.id, title: p.title }));
+            }
+          }
+
+          // If no collection, use similar movies as fallback
+          if (movieParts.length === 1 && similar.results && similar.results.length) {
+            movieParts = movieParts.concat(similar.results
+              .slice(0, 3)
+              .map(m => ({ id: m.id, title: m.title })));
+          }
+
+          // Populate parts selector
+          if (movieParts.length > 1) {
+            partsSelector.style.display = 'flex';
+            partSelect.innerHTML = '';
+            movieParts.forEach((part, index) => {
+              const option = document.createElement('option');
+              option.value = part.id;
+              option.textContent = `Part ${index + 1}: ${part.title}`;
+              partSelect.appendChild(option);
             });
-            html += `</div></div>`;
+            partSelect.value = movie.id; // Set current movie as default
+          }
+
+          // Populate similar movies
+          if (similar.results && similar.results.length) {
+            let html = `<div style="margin-top: 0.3em;"><b>Similar Movies:</b></div><div style="display: flex; gap: 1em; margin-top:0.5em;padding-top:0.7em; overflow-x: auto;">`;
+            similar.results.slice(0, 5).forEach(m => {
+              if (movieParts.some(p => p.id === m.id)) return; // Skip if already in parts
+              html += `
+                <div style="text-align: center; min-width: 100px;">
+                  <img src="${m.poster_path ? imageBaseUrl + m.poster_path : 'https://via.placeholder.com/150'}" alt="${m.title}" style="width:100px;border-radius:7px;cursor:pointer;">
+                  <div style="font-size:0.93em;margin-top:0.3em;">${m.title}</div>
+                </div>`;
+            });
+            html += `</div>`;
             document.getElementById('similar-movies').innerHTML = html;
             document.querySelectorAll('#similar-movies img').forEach(img => {
               img.addEventListener('click', () => {
-                fetch(`https://api.themoviedb.org/3/movie/${img.parentNode.innerHTML.match(/showDetailsFromId\((\d+)\)/)?.[1] || movie.id}?api_key=${apiKey}`)
+                fetch(`https://api.themoviedb.org/3/movie/${img.parentNode.innerHTML.match(/id:(\d+)/)?.[1] || m.id}?api_key=${apiKey}`)
                   .then(r => r.json()).then(showDetails);
               });
             });
           }
-        } catch (e) {
+
+        } catch (error) {
+          console.error('Error loading movie data:', error);
           showError("Failed to load additional movie data.", document.getElementById('modal-content-movie').querySelector('.modal-body'));
         }
+
         document.getElementById('server').value = "player.videasy.net";
-        changeServer(true);
+        changeServer(true); // Load initial server
       }
-      function getStars(vote) {
-        let stars = Math.round((vote || 0) / 2);
-        return '★'.repeat(stars) + '☆'.repeat(5 - stars);
-      }
-      function resetIframeForVidsrc(iframe, embedURL, playOverlay) {
-        iframe.src = '';
-        setTimeout(() => {
-          iframe.src = embedURL;
-          iframe.onload = function() {
-            try {
-              iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-              playOverlay.style.display = 'none';
-            } catch (e) {
-              console.warn('Auto-play failed after reset:', e);
-              playOverlay.style.display = 'flex';
-              showError('Auto-play blocked or server unavailable. Click the play button to start the video.', iframe.closest('.modal-content').querySelector('.modal-body'));
-            }
-          };
-        }, 100);
-      }
-      function changeServer(auto = false, maxRetries = 3) {
-        if (!lastModalMovie) return;
+
+      // Update server and part change handler
+      function changeServer(auto = true, movieId = lastModalMovie?.id) {
+        if (!movieId) return;
         const serverSelect = document.getElementById('server');
         const iframe = document.getElementById('modal-video');
         const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
         const servers = ['player.videasy.net', 'vidsrc.cc', 'vidsrc.me', 'vidsrc.to'];
         let currentServer = serverSelect.value;
 
-        function tryNextServer(index) {
+        function tryNextServer(index, maxRetries = 3) {
           if (index >= servers.length || maxRetries <= 0) {
             playOverlay.style.display = 'flex';
             showError('All servers are unavailable. Try again later.', document.getElementById('modal-content-movie').querySelector('.modal-body'));
@@ -933,13 +973,13 @@
           serverSelect.value = server;
           let embedURL = '';
           if (server === 'player.videasy.net') {
-            embedURL = `https://player.videasy.net/movie/${lastModalMovie.id}?autoplay=1`;
+            embedURL = `https://player.videasy.net/movie/${movieId}?autoplay=1`;
           } else if (server === 'vidsrc.cc') {
-            embedURL = `https://vidsrc.cc/api/embed/movie/${lastModalMovie.id}?autoplay=1`;
+            embedURL = `https://vidsrc.cc/api/embed/movie/${movieId}?autoplay=1`;
           } else if (server === 'vidsrc.me') {
-            embedURL = `https://vidsrc.net/embed/movie/?tmdb=${lastModalMovie.id}&autoplay=1`;
+            embedURL = `https://vidsrc.net/embed/movie/?tmdb=${movieId}&autoplay=1`;
           } else if (server === 'vidsrc.to') {
-            embedURL = `https://vidsrc.to/embed/movie/${lastModalMovie.id}?autoplay=1`;
+            embedURL = `https://vidsrc.to/embed/movie/${movieId}?autoplay=1`;
           }
           iframe.src = '';
           const timeoutId = setTimeout(() => {
@@ -968,8 +1008,13 @@
           const currentIndex = servers.indexOf(currentServer);
           tryNextServer(currentIndex !== -1 ? currentIndex : 0);
         } else {
-          resetIframeForVidsrc(iframe, embedURL, playOverlay);
+          tryNextServer(servers.indexOf(currentServer));
         }
+      }
+
+      function getStars(vote) {
+        let stars = Math.round((vote || 0) / 2);
+        return '★'.repeat(stars) + '☆'.repeat(5 - stars);
       }
       function triggerIframePlay(iframeId) {
         const iframe = document.getElementById(iframeId);
@@ -987,6 +1032,7 @@
         document.getElementById('tv-episode-player').style.display = "none";
         document.getElementById('tv-episode-player').src = "";
         document.getElementById('tv-episode-next-btn').style.display = "none";
+        movieParts = []; // Reset parts
         if (isMobileOrTablet() && screen.orientation && screen.orientation.unlock) {
           screen.orientation.unlock().catch(err => console.warn('Orientation unlock failed:', err));
         }
@@ -1269,7 +1315,11 @@
         document.getElementById('modal-content-tv').querySelector('.close').addEventListener('click', closeTvModal);
         document.getElementById('share-movie-btn').addEventListener('click', shareMovie);
         document.getElementById('share-tv-btn').addEventListener('click', shareTvShow);
-        document.getElementById('server').addEventListener('change', () => changeServer());
+        document.getElementById('server').addEventListener('change', () => changeServer(false));
+        document.getElementById('movie-part').addEventListener('change', (e) => {
+          const selectedId = parseInt(e.target.value);
+          changeServer(true, selectedId);
+        });
         document.querySelectorAll('.iframe-play-overlay').forEach(btn => {
           btn.addEventListener('click', () => triggerIframePlay(btn.previousElementSibling.id));
         });
