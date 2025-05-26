@@ -24,7 +24,7 @@
       --border: #2a2e33;
     }
 
-    /* Fallback styles if Bootstrap fails */
+    /* Fallback styles */
     html, body {
       margin: 0;
       padding: 0;
@@ -561,15 +561,24 @@
       color: var(--text-muted);
       font-size: 1.1rem;
       margin: 2rem 0;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
     }
 
     .loading-state {
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
       color: var(--text);
       font-size: 1.2rem;
+      background: var(--primary-bg);
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 2000;
     }
 
     @media (max-width: 767.98px) {
@@ -659,7 +668,7 @@
   </div>
 
   <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg" id="main-nav" style="display: none;">
+  <nav class="navbar navbar-expand-lg" id="main-nav">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">
         <span class="logo-text">MovieDck</span>
@@ -693,7 +702,7 @@
   </nav>
 
   <!-- Hero Search -->
-  <div class="tm-hero" id="hero-section" style="display: none;">
+  <div class="tm-hero" id="hero-section">
     <form class="tm-search-form" id="movie-search-form" autocomplete="off">
       <input class="tm-search-input" type="search" id="movie-search-input" placeholder="Search for movies or TV shows..." aria-label="Search movies and TV shows">
       <button class="tm-search-btn" type="submit" aria-label="Search"><i class="fas fa-search"></i></button>
@@ -701,7 +710,7 @@
   </div>
 
   <!-- Main Content -->
-  <div class="container-fluid tm-container-content" id="main-content" style="display: none;">
+  <div class="container-fluid tm-container-content" id="main-content">
     <div id="recently-viewed-section" style="display: none;">
       <h2 class="h5">Recently Viewed</h2>
       <div id="recently-viewed-list"></div>
@@ -720,7 +729,7 @@
   </div>
 
   <!-- Footer -->
-  <footer class="tm-footer" id="footer" style="display: none;">
+  <footer class="tm-footer" id="footer">
     <div class="container-fluid">
       <div class="row">
         <div class="col-lg-6 col-md-12 mb-4">
@@ -752,7 +761,7 @@
   </footer>
 
   <!-- Back to Top Button -->
-  <button class="back-to-top" aria-label="Back to top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" style="display: none;">
+  <button class="back-to-top" aria-label="Back to top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
     <i class="fas fa-chevron-up"></i>
   </button>
 
@@ -761,7 +770,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+5W6/1hSNfANHLjmfxf2A4gQGIgM5rVOlT2oJ3lOry2fOls3POz6HaN+4D1oAMEN3hW3N7G3e2Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
     // Configuration
-    const apiKey = '40f1982842db35042e8561b13b38d492'; // Your TMDB API key
+    const apiKey = '40f1982842db35042e8561b13b38d492';
     const apiBaseUrl = 'https://api.themoviedb.org/3';
     const imageBaseUrl = 'https://image.tmdb.org/t/p/w342';
     let lastModalMovie = null;
@@ -776,6 +785,15 @@
     let categoryItems = [];
     let genreList = [];
 
+    // Fallback Genres
+    const fallbackGenres = [
+      { id: 28, name: 'Action' },
+      { id: 12, name: 'Adventure' },
+      { id: 16, name: 'Animation' },
+      { id: 35, name: 'Comedy' },
+      { id: 18, name: 'Drama' }
+    ];
+
     // Utility Functions
     const debounce = (func, wait) => {
       let timeout;
@@ -785,14 +803,19 @@
       };
     };
 
-    const showError = (container, message, isTemporary = true) => {
+    const showError = (container, message, isTemporary = false) => {
       const errorDiv = document.createElement('div');
       errorDiv.className = 'error-state';
       errorDiv.textContent = message;
       container.innerHTML = '';
       container.appendChild(errorDiv);
-      console.error(message);
+      console.error('[MovieDck Error]', message);
       if (isTemporary) setTimeout(() => errorDiv.remove(), 5000);
+    };
+
+    const hideLoading = () => {
+      const loadingState = document.getElementById('loading-state');
+      if (loadingState) loadingState.style.display = 'none';
     };
 
     const isMobileOrTablet = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.matchMedia('(max-width: 991.98px)').matches;
@@ -801,12 +824,77 @@
       if (!isMobileOrTablet() || !screen.orientation?.lock) return;
       screen.orientation.lock('landscape').catch(err => {
         console.warn('Orientation lock failed:', err);
-        showError(iframe.closest('.modal-content').querySelector('.modal-body'), 'Please rotate to landscape for the best experience.');
+        showError(iframe.closest('.modal-content').querySelector('.modal-body'), 'Please rotate to landscape for the best experience.', true);
       });
     };
 
     const unlockOrientation = () => {
       if (screen.orientation?.unlock) screen.orientation.unlock().catch(err => console.warn('Orientation unlock failed:', err));
+    };
+
+    // API Fetching with Retry
+    const fetchWithRetry = async (url, container = document.getElementById('movie-list'), retries = 2, delay = 1000) => {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          console.log(`[API] Fetching: ${url} (Attempt ${attempt})`);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const response = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (!response.ok) {
+            if (response.status === 401) throw new Error('Invalid TMDB API key');
+            if (response.status === 429) throw new Error('TMDB rate limit exceeded');
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          const data = await response.json();
+          if (!data.results && !data.id && !data.genres) throw new Error('Invalid API response');
+          console.log(`[API] Success: ${url}`);
+          return data;
+        } catch (e) {
+          console.error(`[API] Fetch attempt ${attempt} failed:`, e.message);
+          if (attempt === retries) {
+            let userMessage = 'Failed to load content. Please check your connection or try again later.';
+            if (e.message.includes('Invalid TMDB API key')) userMessage = 'Invalid TMDB API key. Please contact support.';
+            if (e.message.includes('rate limit')) userMessage = 'Too many requests. Please wait a moment and try again.';
+            if (e.name === 'AbortError') userMessage = 'Request timed out. Please try again.';
+            showError(container, userMessage);
+            return null;
+          }
+          await new Promise(resolve => setTimeout(resolve, delay * attempt));
+        }
+      }
+    };
+
+    const fetchGenres = async () => {
+      const data = await fetchWithRetry(`${apiBaseUrl}/genre/movie/list?api_key=${apiKey}`);
+      genreList = data?.genres || fallbackGenres;
+      console.log('[Genres] Loaded:', genreList);
+    };
+
+    const fetchMovie = async id => fetchWithRetry(`${apiBaseUrl}/movie/${id}?api_key=${apiKey}`);
+
+    const fetchMoviesInf = async (page = 1) => {
+      let url = '';
+      if (currentMode === 'favorites') {
+        renderFavorites();
+        return [];
+      }
+      if (currentMode === 'search' && currentQuery.trim()) {
+        url = `${apiBaseUrl}/search/${netflixType || 'movie'}?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`;
+      } else if (currentMode === 'anime') {
+        url = `${apiBaseUrl}/discover/movie?api_key=${apiKey}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
+      } else if (currentMode === 'tagalog') {
+        url = `${apiBaseUrl}/discover/movie?api_key=${apiKey}&with_original_language=tl&sort_by=popularity.desc&page=${page}`;
+      } else if (currentMode === 'tv') {
+        url = `${apiBaseUrl}/trending/tv/day?api_key=${apiKey}&page=${page}`;
+      } else if (currentMode === 'netflix') {
+        url = `${apiBaseUrl}/discover/${netflixType}?api_key=${apiKey}&with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`;
+      } else {
+        url = `${apiBaseUrl}/trending/movie/day?api_key=${apiKey}&page=${page}`;
+      }
+      const data = await fetchWithRetry(url);
+      totalPages = data?.total_pages || 1;
+      return data?.results || [];
     };
 
     // Favorites and Recently Viewed
@@ -870,52 +958,7 @@
       });
     };
 
-    // API Fetching
-    const fetchWithErrorHandling = async (url, container = document.getElementById('movie-list')) => {
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        const data = await response.json();
-        if (!data.results && !data.id) throw new Error('Invalid API response');
-        return data;
-      } catch (e) {
-        console.error('Fetch error:', e);
-        showError(container, `Failed to load content: ${e.message}. Please check your connection or try again later.`);
-        return null;
-      }
-    };
-
-    const fetchGenres = async () => {
-      const data = await fetchWithErrorHandling(`${apiBaseUrl}/genre/movie/list?api_key=${apiKey}`);
-      genreList = data?.genres || [];
-    };
-
-    const fetchMovie = async id => fetchWithErrorHandling(`${apiBaseUrl}/movie/${id}?api_key=${apiKey}`);
-
-    const fetchMoviesInf = async (page = 1) => {
-      let url = '';
-      if (currentMode === 'favorites') {
-        renderFavorites();
-        return [];
-      }
-      if (currentMode === 'search' && currentQuery.trim()) {
-        url = `${apiBaseUrl}/search/${netflixType || 'movie'}?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`;
-      } else if (currentMode === 'anime') {
-        url = `${apiBaseUrl}/discover/movie?api_key=${apiKey}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
-      } else if (currentMode === 'tagalog') {
-        url = `${apiBaseUrl}/discover/movie?api_key=${apiKey}&with_original_language=tl&sort_by=popularity.desc&page=${page}`;
-      } else if (currentMode === 'tv') {
-        url = `${apiBaseUrl}/trending/tv/day?api_key=${apiKey}&page=${page}`;
-      } else if (currentMode === 'netflix') {
-        url = `${apiBaseUrl}/discover/${netflixType}?api_key=${apiKey}&with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`;
-      } else {
-        url = `${apiBaseUrl}/trending/movie/day?api_key=${apiKey}&page=${page}`;
-      }
-      const data = await fetchWithErrorHandling(url);
-      totalPages = data?.total_pages || 1;
-      return data?.results || [];
-    };
-
+    // Render Movies
     const renderMovies = (movies, clear = false) => {
       const container = document.getElementById('movie-list');
       if (clear) container.innerHTML = '';
@@ -993,6 +1036,7 @@
 
     // Modal - Movie
     const showDetails = async movie => {
+      if (!movie) return;
       document.getElementById('modal-content-movie').style.display = 'block';
       document.getElementById('modal-content-tv').style.display = 'none';
       document.getElementById('modal').style.display = 'flex';
@@ -1014,9 +1058,9 @@
       document.getElementById('similar-movies').innerHTML = '<div class="spinner"></div>';
 
       const [credits, videos, similar] = await Promise.all([
-        fetchWithErrorHandling(`${apiBaseUrl}/movie/${movie.id}/credits?api_key=${apiKey}`, document.getElementById('modal-cast')),
-        fetchWithErrorHandling(`${apiBaseUrl}/movie/${movie.id}/videos?api_key=${apiKey}`, document.getElementById('modal-trailer')),
-        fetchWithErrorHandling(`${apiBaseUrl}/movie/${movie.id}/similar?api_key=${apiKey}`, document.getElementById('similar-movies'))
+        fetchWithRetry(`${apiBaseUrl}/movie/${movie.id}/credits?api_key=${apiKey}`, document.getElementById('modal-cast')),
+        fetchWithRetry(`${apiBaseUrl}/movie/${movie.id}/videos?api_key=${apiKey}`, document.getElementById('modal-trailer')),
+        fetchWithRetry(`${apiBaseUrl}/movie/${movie.id}/similar?api_key=${apiKey}`, document.getElementById('similar-movies'))
       ]);
 
       document.getElementById('modal-cast').innerHTML = credits?.cast?.slice(0, 5).map(c => c.name).join(', ') || 'No cast available.';
@@ -1058,7 +1102,7 @@
       const tryNextServer = async index => {
         if (index >= servers.length) {
           playOverlay.style.display = 'flex';
-          showError(document.getElementById('modal-content-movie').querySelector('.modal-body'), 'All servers unavailable. Try again later.');
+          showError(document.getElementById('modal-content-movie').querySelector('.modal-body'), 'All servers unavailable. Try again later.', true);
           return;
         }
 
@@ -1108,7 +1152,7 @@
         iframe.parentElement.querySelector('.iframe-play-overlay').style.display = 'none';
       } catch (e) {
         console.warn('Manual play failed:', e);
-        showError(iframe.closest('.modal-content').querySelector('.modal-body'), 'Playback failed. Try switching servers.');
+        showError(iframe.closest('.modal-content').querySelector('.modal-body'), 'Playback failed. Try switching servers.', true);
       }
     };
 
@@ -1123,12 +1167,13 @@
 
     // Modal - TV Shows
     const showTvDetails = async tv => {
+      if (!tv) return;
       document.getElementById('modal-content-movie').style.display = 'none';
       document.getElementById('modal-content-tv').style.display = 'block';
       document.getElementById('modal').style.display = 'flex';
       document.getElementById('modal').focus();
 
-      const tvInfo = await fetchWithErrorHandling(`${apiBaseUrl}/tv/${tv.id}?api_key=${apiKey}`, document.getElementById('tv-modal-seasons-list'));
+      const tvInfo = await fetchWithRetry(`${apiBaseUrl}/tv/${tv.id}?api_key=${apiKey}`, document.getElementById('tv-modal-seasons-list'));
       if (!tvInfo) return;
 
       tvModalData.tvId = tvInfo.id;
@@ -1147,7 +1192,7 @@
         const seasonDiv = document.createElement('div');
         seasonDiv.className = 'season-block';
         seasonDiv.innerHTML = `
-          <div class="season-header" id="0" role="button" aria-label="Toggle ${season.name}">${season.name} (${season.episode_count || '0'} episodes)</div>
+          <div class="season-header" tabindex="0" role="button" aria-label="Toggle ${season.name}">${season.name} (${season.episode_count || 0} episodes)</div>
           <div class="episodes-list" style="display: none;"></div>
         `;
         const header = seasonDiv.querySelector('.season-header');
@@ -1156,13 +1201,13 @@
           if (epList.style.display === 'none') {
             if (!epList.innerHTML.trim()) {
               epList.innerHTML = '<div class="spinner"></div>';
-              const data = await fetchWithErrorHandling(`${apiBaseUrl}/tv/${tv.id}/season${season.season_number}?api_key=${apiKey}`, epList);
+              const data = await fetchWithRetry(`${apiBaseUrl}/tv/${tv.id}/season/${season.season_number}?api_key=${apiKey}`, epList);
               epList.innerHTML = (data?.episodes || []).map(ep => `
                 <div class="episode-block">
-                  <span>Ep ${ep.episode_number || '0'}: '${ep.name || '(Untitled)'} <small>(${ep.air_date || ''})</small></span>
-                  <button class="tv-episode-play-btn" onclick="event.stopPropagation();playTvEpisode('${tv.id}', '${season.season_number}', '${ep.episode_number}')"; aria-label="Play episode ${ep.episode_number}')">Play</button>
+                  <span>Ep ${ep.episode_number || 'N/A'}: ${ep.name || '(Untitled)'} <small>${ep.air_date || ''}</small></span>
+                  <button class="tv-episode-play-btn" onclick="event.stopPropagation();playTvEpisode('${tv.id}', '${season.season_number}', '${ep.episode_number}')" aria-label="Play episode ${ep.episode_number || 'N/A'}">Play</button>
                 </div>
-              )).join('');
+              `).join('');
             }
             epList.style.display = 'block';
           } else {
@@ -1183,7 +1228,7 @@
       const iframe = document.getElementById('tv-episode-player');
       const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
       iframe.style.display = 'block';
-      iframe.src = `https://playerdireasy.net/tv/${tvId}/${seasonNum}/${episodeNum}?autoplay=1`;
+      iframe.src = `https://player.videasy.net/tv/${tvId}/${seasonNum}/${episodeNum}?autoplay=1`;
       tvModalData.season = parseInt(seasonNum);
       tvModalData.episode = parseInt(episodeNum);
       setTimeout(() => iframe.scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
@@ -1194,7 +1239,7 @@
         } catch (e) {
           console.warn('Auto-play failed:', e);
           playOverlay.style.display = 'flex';
-          showError(document.getElementById('modal-content-tv').querySelector('.modal-body'), 'Auto-play blocked. Click play to start.');
+          showError(document.getElementById('modal-content-tv').querySelector('.modal-body'), 'Auto-play blocked. Click play to start.', true);
         }
       };
       const nextBtn = document.getElementById('tv-episode-next-btn');
@@ -1272,7 +1317,7 @@
       } else {
         resetInfiniteScroll();
       }
-    }, 300);
+    }, 250);
 
     const setActiveNav = mode => {
       ['nav-movies', 'nav-tvshows', 'nav-anime', 'nav-tagalog', 'nav-netflix', 'nav-favorites'].forEach(id => {
@@ -1298,24 +1343,31 @@
 
     // Event Listeners
     document.addEventListener('DOMContentLoaded', async () => {
-      // Check if critical resources loaded
-      if (!window.jQuery || !window.bootstrap) {
-        showError(document.body, 'Failed to load required libraries (jQuery or Bootstrap). Please check your internet connection.', false);
+      console.log('[MovieDck] Initializing...');
+
+      // Check protocol
+      if (location.protocol === 'file:') {
+        showError(document.getElementById('main-content'), 'Cannot run MovieDck from file://. Please use a local server (e.g., `npx serve` or `python -m http.server 8000`).', false);
+        hideLoading();
         return;
       }
 
-      // Show main content after resources are confirmed
-      try {
-        await fetchGenres();
-        renderRecentlyViewed();
+      // Check resources
+      if (!window.jQuery || !window.bootstrap) {
+        showError(document.getElementById('main-content'), 'Failed to load jQuery or Bootstrap. Please check your internet connection.', false);
+        hideLoading();
+        return;
+      }
 
-        // Show UI elements
-        document.getElementById('loading-state').style.display = 'none';
-        document.getElementById('main-nav').style.display = 'block';
-        document.getElementById('hero-section').style.display = 'block';
-        document.getElementById('main-content').style.display = 'block';
-        document.getElementById('footer').style.display = 'block';
-        document.querySelector('.back-to-top').style.display = 'flex';
+      try {
+        // Load genres (non-blocking)
+        fetchGenres().catch(err => {
+          console.warn('[Genres] Failed to load genres, using fallback:', err);
+          genreList = fallbackGenres;
+        });
+
+        renderRecentlyViewed();
+        hideLoading();
 
         // Navigation
         document.getElementById('nav-movies').addEventListener('click', e => { e.preventDefault(); switchMode('popular'); });
@@ -1413,8 +1465,9 @@
         // Initial Load
         resetInfiniteScroll();
       } catch (err) {
-        console.error('Initialization error:', err);
-        showError(document.body, 'Failed to initialize the application. Please refresh the page or check your connection.', false);
+        console.error('[MovieDck] Initialization error:', err);
+        showError(document.getElementById('main-content'), 'Failed to initialize the application. Please refresh the page or check your connection.', false);
+        hideLoading();
       }
     });
 
@@ -1471,7 +1524,8 @@
     window.addEventListener('error', e => {
       if (e.target.tagName === 'LINK' || e.target.tagName === 'SCRIPT') {
         console.error(`Failed to load resource: ${e.target.src || e.target.href}`);
-        showError(document.body, `Failed to load ${e.target.tagName.toLowerCase()}: ${e.target.src || e.target.href}. Some features may not work.`, false);
+        showError(document.getElementById('main-content'), `Failed to load ${e.target.tagName.toLowerCase()}: ${e.target.src || e.target.href}. Some features may not work.`, false);
+        hideLoading();
       }
     }, true);
   </script>
