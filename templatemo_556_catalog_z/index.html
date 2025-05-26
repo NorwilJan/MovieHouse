@@ -444,7 +444,7 @@
   <!-- Movie Player Modal -->
   <div class="modal" id="modal" role="dialog" aria-labelledby="modal-title">
     <div class="modal-content" id="modal-content-movie">
-      <span class="close" aria-label="Close modal">&times;</span>
+      <span class="close" aria-label="Close modal">×</span>
       <div class="modal-body">
         <img id="modal-image" src="" alt="Poster" />
         <div class="modal-text">
@@ -477,7 +477,7 @@
     </div>
     <!-- TV Modal Content -->
     <div class="modal-content" id="modal-content-tv" style="display:none;" role="dialog" aria-labelledby="tv-modal-title">
-      <span class="close" aria-label="Close modal">&times;</span>
+      <span class="close" aria-label="Close modal">×</span>
       <div class="modal-body">
         <img id="tv-modal-image" src="" alt="Poster" />
         <div class="modal-text">
@@ -606,8 +606,8 @@
   <script>
     (function() {
       // --- CONFIG ---
-      const apiKey = 'YOUR_TMDB_API_KEY'; // TODO: Move to server-side or environment variable
-      const imageBaseUrl = 'https://image.tmdb.org/t/p/w342'; // Reduced size for performance
+      const apiKey = '40f1982842db35042e8561b13b38d492'; // Your TMDB API key
+      const imageBaseUrl = 'https://image.tmdb.org/t/p/w342';
       let lastModalMovie = null;
       let currentPage = 1;
       let totalPages = 1;
@@ -617,7 +617,6 @@
       let netflixType = "movie";
       let tvModalData = { tvId: null, season: null, episode: null, seasons: [] };
       let categoryItems = [];
-      const MAX_CATEGORY_ITEMS = 100; // Limit for memory optimization
 
       // Utility to show error messages
       function showError(message, container = document.getElementById('movie-list')) {
@@ -695,7 +694,7 @@
             .catch(() => null)
         );
         const arr = (await Promise.all(promises)).filter(m => m && m.id);
-        categoryItems = arr.slice(0, MAX_CATEGORY_ITEMS);
+        categoryItems = arr;
         renderMovies(categoryItems, true);
       }
       let recentlyViewed = JSON.parse(localStorage.getItem("recently_viewed") || "[]");
@@ -720,7 +719,7 @@
           div.className = "movie-col";
           div.innerHTML = `
             <div class="movie-poster-wrapper" tabindex="0">
-              <img src="${movie.poster_path ? imageBaseUrl + movie.poster_path : 'img/no-poster.png'}" alt="${movie.title}" class="img-fluid movie-poster-img">
+              <img src="${movie.poster_path ? imageBaseUrl + movie.poster_path : 'https://via.placeholder.com/150'}" alt="${movie.title}" class="img-fluid movie-poster-img">
             </div>
             <div class="movie-metadata">
               <span class="movie-title" title="${movie.title}">${movie.title}</span>
@@ -738,7 +737,7 @@
       // FETCH & RENDER
       function getTotalPagesForMode(data) { return data.total_pages || 1; }
       async function fetchMoviesInf(page = 1) {
-        let url = "";
+        let url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${apiKey}&page=${page}`;
         if (currentMode === "favorites") {
           renderFavorites();
           return [];
@@ -754,22 +753,17 @@
         } else if (currentMode === "netflix") {
           if (netflixType === "movie") {
             url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`;
-          } else<IMDB> else {
+          } else {
             url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`;
           }
-        } else {
-          url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${apiKey}&page=${page}`;
         }
         try {
           const response = await fetch(url);
-          if (response.status === 429) {
-            showError("Rate limit exceeded. Please try again later.");
-            return [];
-          }
           const data = await response.json();
-          totalPages = getTotalPagesForMode(data);
+          totalPages = data.total_pages || 1;
           return data.results || [];
         } catch (e) {
+          console.error('Fetch error:', e);
           showError("Failed to load movies/TV shows. Please check your connection.");
           return [];
         }
@@ -778,7 +772,7 @@
         const container = document.getElementById('movie-list');
         if (clear) container.innerHTML = '';
         if (!movies || movies.length === 0) {
-          if (clear) container.innerHTML = `<div class="empty-state">No items found for your filter or search.</div>`;
+          if (clear) container.innerHTML = `<div class="empty-state">No items found.</div>`;
           return;
         }
         movies.forEach(item => {
@@ -787,7 +781,7 @@
           movieDiv.className = 'movie-col';
           movieDiv.innerHTML = `
             <div class="movie-poster-wrapper" tabindex="0">
-              <img src="${item.poster_path ? imageBaseUrl + item.poster_path : 'img/no-poster.png'}" alt="${isTv ? item.name : item.title}" class="img-fluid movie-poster-img">
+              <img src="${item.poster_path ? imageBaseUrl + item.poster_path : 'https://via.placeholder.com/150'}" alt="${isTv ? item.name : item.title}" class="img-fluid movie-poster-img">
               <button class="play-btn-centered" type="button" title="${isTv ? "View TV Show" : "Play Movie"}" aria-label="${isTv ? "View TV Show" : "Play Movie"}">
                 <i class="fas fa-${isTv ? "tv" : "play"}"></i>
               </button>
@@ -832,28 +826,17 @@
         if (isLoading || reachedEnd) return;
         isLoading = true;
         document.getElementById("infinite-loader").style.display = "";
-        let movies = await fetchAndStoreItems(infCurrentPage);
-        if (movies && movies.length > 0 && !clear) {
-          renderMovies(movies, false);
-        }
-        isLoading = false;
-        document.getElementById("infinite-loader").style.display = "none";
-      }
-      async function fetchAndStoreItems(page = 1) {
-        let movies = await fetchMoviesInf(page);
+        let movies = await fetchMoviesInf(infCurrentPage);
         if (movies && movies.length > 0) {
-          if (page === 1) {
-            categoryItems = movies;
-          } else {
-            categoryItems = [...categoryItems, ...movies].slice(0, MAX_CATEGORY_ITEMS);
-          }
-          renderMovies(movies, page === 1);
+          renderMovies(movies, clear);
+          categoryItems = clear ? movies : [...categoryItems, ...movies];
           infCurrentPage++;
           if (infCurrentPage > totalPages) reachedEnd = true;
         } else {
           reachedEnd = true;
         }
-        return movies;
+        isLoading = false;
+        document.getElementById("infinite-loader").style.display = "none";
       }
 
       // MODAL - MOVIE
@@ -866,7 +849,7 @@
         addRecentlyViewed(movie);
         document.getElementById('modal-title').textContent = movie.title;
         document.getElementById('modal-description').textContent = movie.overview || '';
-        document.getElementById('modal-image').src = movie.poster_path ? imageBaseUrl + movie.poster_path : 'img/no-poster.png';
+        document.getElementById('modal-image').src = movie.poster_path ? imageBaseUrl + movie.poster_path : 'https://via.placeholder.com/150';
         document.getElementById('modal-rating').innerHTML = getStars(movie.vote_average || 0) + ` (${movie.vote_average || 'N/A'})`;
         document.getElementById('modal-genres').innerHTML = (movie.genre_ids || movie.genres || []).map(gid => {
           let g = typeof gid === "object" ? gid : ((window.genreList || []).find(x => x.id === gid) || {name: ""});
@@ -893,7 +876,7 @@
             let html = `<div style="margin-top:1.3em;"><b>Similar Movies:</b><div style="display:flex;gap:1em;overflow-x:auto;padding-top:0.7em;">`;
             similar.results.slice(0, 8).forEach(m => {
               html += `<div style="width:110px;text-align:center;">
-                <img src="${m.poster_path ? imageBaseUrl + m.poster_path : 'img/no-poster.png'}" alt="${m.title}" style="width:100px;border-radius:7px;cursor:pointer;">
+                <img src="${m.poster_path ? imageBaseUrl + m.poster_path : 'https://via.placeholder.com/150'}" alt="${m.title}" style="width:100px;border-radius:7px;cursor:pointer;">
                 <div style="font-size:0.93em;margin-top:0.3em;">${m.title}</div>
               </div>`;
             });
@@ -901,7 +884,7 @@
             document.getElementById('similar-movies').innerHTML = html;
             document.querySelectorAll('#similar-movies img').forEach(img => {
               img.addEventListener('click', () => {
-                fetch(`https://api.themoviedb.org/3/movie/${img.parentNode.innerHTML.match(/showDetailsFromId\((\d+)\)/)[1]}?api_key=${apiKey}`)
+                fetch(`https://api.themoviedb.org/3/movie/${img.parentNode.innerHTML.match(/showDetailsFromId\((\d+)\)/)?.[1] || movie.id}?api_key=${apiKey}`)
                   .then(r => r.json()).then(showDetails);
               });
             });
@@ -1019,7 +1002,7 @@
         tvModalData.tvId = tvInfo.id;
         tvModalData.seasons = tvInfo.seasons;
         document.getElementById('tv-modal-title').textContent = tvInfo.name;
-        document.getElementById('tv-modal-image').src = tvInfo.poster_path ? imageBaseUrl + tvInfo.poster_path : 'img/no-poster.png';
+        document.getElementById('tv-modal-image').src = tvInfo.poster_path ? imageBaseUrl + tvInfo.poster_path : 'https://via.placeholder.com/150';
         document.getElementById('tv-modal-description').textContent = tvInfo.overview || '';
         document.getElementById('tv-modal-air-date').textContent = tvInfo.first_air_date || '';
         document.getElementById('tv-modal-total-seasons').textContent = tvInfo.number_of_seasons;
@@ -1123,17 +1106,13 @@
         categoryItems = [];
         loadMoreMovies(true);
       }
-      let scrollTimeout;
       window.addEventListener("scroll", function() {
         if (reachedEnd || isLoading || currentMode === "favorites") return;
         let scrollable = document.documentElement.scrollHeight - window.innerHeight;
         let scrolled = window.scrollY;
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-          if (scrollable - scrolled < 600) {
-            loadMoreMovies();
-          }
-        }, 100);
+        if (scrollable - scrolled < 600) {
+          loadMoreMovies();
+        }
       });
 
       // NAVBAR
@@ -1296,22 +1275,13 @@
         });
 
         renderRecentlyViewed();
-        const params = new URLSearchParams(location.search);
-        if (params.has("mid")) {
-          fetch(`https://api.themoviedb.org/3/movie/${params.get("mid")}?api_key=${apiKey}`)
-            .then(r => r.json()).then(showDetails);
-        }
+        resetInfiniteScroll();
       });
 
       window.addEventListener('resize', function() {
         if (document.getElementById('modal').style.display !== 'flex' && currentMode !== "favorites") {
           resetInfiniteScroll();
         }
-      });
-      window.addEventListener("load", function() {
-        document.body.classList.add('loaded');
-        resetInfiniteScroll();
-        renderRecentlyViewed();
       });
 
       function shareMovie() {
