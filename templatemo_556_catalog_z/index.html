@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=DM+Serif+Display&display=swap">
   <!-- Bootstrap and Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css" integrity="sha512-rt/SrQ4ikXaW6R7Zf0zP3wW3D5qDRBUD8u4aM6L9/6u3j2zM6L9/6u3j2zM6L9/6u3j2zM6L9w==" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css" integrity="sha512-rt/SrQ4ikXaW6R7Zf0zP3wW3D5qDRBUD8u4aM6L9/6u3j2zM6L9/6u3j2zM6L9w==" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw==" crossorigin="anonymous">
   <style>
     :root {
@@ -684,9 +684,9 @@
       state.recentlyViewed = state.recentlyViewed.filter(m => m.id !== movie.id);
       state.recentlyViewed.unshift({
         id: movie.id,
-        title: movie.title,
+        title: movie.title || movie.name,
         poster_path: movie.poster_path,
-        release_date: movie.release_date
+        release_date: movie.release_date || movie.first_air_date
       });
       if (state.recentlyViewed.length > 12) state.recentlyViewed = state.recentlyViewed.slice(0, 12);
       localStorage.setItem('recently_viewed', JSON.stringify(state.recentlyViewed));
@@ -701,14 +701,14 @@
         return;
       }
       section.style.display = 'block';
-      list.innerHTML = state.recentlyViewed.map(movie => `
-        <div class="movie-col" data-id="${movie.id}">
-          <div class="movie-poster-wrapper" tabindex="0" aria-label="View ${movie.title}">
-            <img src="${movie.poster_path ? CONFIG.imageBaseUrl + movie.poster_path : '/img/no-poster.png'}" alt="${movie.title}" class="img-fluid movie-poster-img" loading="lazy">
+      list.innerHTML = state.recentlyViewed.map(item => `
+        <div class="movie-col" data-id="${item.id}">
+          <div class="movie-poster-wrapper" tabindex="0" aria-label="View ${item.title}">
+            <img src="${item.poster_path ? CONFIG.imageBaseUrl + item.poster_path : '/img/no-poster.png'}" alt="${item.title}" class="img-fluid movie-poster-img" loading="lazy">
           </div>
           <div class="movie-metadata">
-            <span class="movie-title" title="${movie.title}">${movie.title}</span>
-            <span class="movie-year">${movie.release_date?.slice(0, 4) || ''}</span>
+            <span class="movie-title" title="${item.title}">${item.title}</span>
+            <span class="movie-year">${item.release_date?.slice(0, 4) || ''}</span>
           </div>
         </div>
       `).join('');
@@ -716,14 +716,14 @@
 
     // API and Rendering
     const fetchMovies = async (page = 1) => {
-      console.log(`Fetching movies: mode=${state.currentMode}, page=${page}, query=${state.currentQuery}`);
+      console.log(`Fetching: mode=${state.currentMode}, page=${page}, query=${state.currentQuery}`);
       let url;
       if (state.currentMode === 'favorites') {
         renderFavorites();
         return [];
       }
       if (state.currentMode === 'search' && state.currentQuery.trim()) {
-        url = `https://api.themoviedb.org/3/search/movie?api_key=${CONFIG.apiKey}&query=${encodeURIComponent(state.currentQuery)}&page=${page}&include_adult=false`;
+        url = `https://api.themoviedb.org/3/search/multi?api_key=${CONFIG.apiKey}&query=${encodeURIComponent(state.currentQuery)}&page=${page}&include_adult=false`;
       } else if (state.currentMode === 'anime') {
         url = `https://api.themoviedb.org/3/discover/movie?api_key=${CONFIG.apiKey}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
       } else if (state.currentMode === 'tagalog') {
@@ -737,9 +737,9 @@
       }
       try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to fetch movies`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to fetch data`);
         const data = await response.json();
-        console.log('API Response:', data);
+        console.log(`API Response (${state.currentMode}):`, data);
         state.totalPages = data.total_pages || 1;
         return data.results || [];
       } catch (e) {
@@ -756,7 +756,7 @@
         return;
       }
       container.innerHTML += items.map(item => {
-        const isTv = !!item.name && !item.title;
+        const isTv = item.media_type === 'tv' || !!item.name;
         return `
           <div class="movie-col" data-id="${item.id}" data-type="${isTv ? 'tv' : 'movie'}">
             <div class="movie-poster-wrapper" tabindex="0" aria-label="${isTv ? `View ${item.name}` : `Play ${item.title}`}">
@@ -992,11 +992,11 @@
       if (state.isLoading || state.reachedEnd) return;
       state.isLoading = true;
       document.getElementById('infinite-loader').style.display = 'block';
-      const movies = await fetchMovies(state.currentPage);
-      if (movies.length) {
-        if (clear) state.categoryItems = movies;
-        else state.categoryItems = [...state.categoryItems, ...movies];
-        renderMovies(movies, clear);
+      const items = await fetchMovies(state.currentPage);
+      if (items.length) {
+        if (clear) state.categoryItems = items;
+        else state.categoryItems = [...state.categoryItems, ...items];
+        renderMovies(items, clear);
         state.currentPage++;
         if (state.currentPage > state.totalPages) state.reachedEnd = true;
       } else {
@@ -1024,6 +1024,7 @@
 
     // Navigation
     const switchMode = mode => {
+      console.log(`Switching to mode: ${mode}`);
       if (state.currentMode === mode && !(mode === 'search' && state.currentQuery)) return;
       state.currentMode = mode;
       state.currentQuery = '';
@@ -1039,7 +1040,7 @@
         popular: 'Trending Movies'
       };
       sectionTitle.textContent = titles[mode] || 'Trending Movies';
-      categorySearchForm.style.display = 'flex';
+      categorySearchForm.style.display = mode !== 'search' ? 'flex' : 'none';
       categorySearchInput.placeholder = `Search ${titles[mode] || 'Trending Movies'}...`;
       setActiveNav(mode);
       categorySearchInput.value = '';
@@ -1053,8 +1054,10 @@
 
     const setActiveNav = mode => {
       document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-      if (mode !== 'favorites' && mode !== 'search') {
-        document.getElementById(`nav-${mode}`).classList.add('active');
+      if (mode && mode !== 'favorites' && mode !== 'search') {
+        const navId = mode === 'tv' ? 'nav-tvshows' : `nav-${mode}`;
+        const navElement = document.getElementById(navId);
+        if (navElement) navElement.classList.add('active');
       }
       document.getElementById('nav-favorites').classList.toggle('favorited', mode === 'favorites');
     };
@@ -1108,7 +1111,9 @@
         link.addEventListener('click', e => {
           e.preventDefault();
           const mode = link.id.replace('nav-', '');
-          if (mode === 'netflix') {
+          if (mode === 'tvshows') {
+            switchMode('tv');
+          } else if (mode === 'netflix') {
             const switcher = document.createElement('div');
             switcher.id = 'netflix-switcher';
             switcher.style = 'margin-top:6px;margin-bottom:2px;';
