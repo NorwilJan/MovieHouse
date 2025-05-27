@@ -41,26 +41,28 @@
       border-color: var(--border-color);
     }
 
-    .tm-hero {
-      background: var(--secondary-bg);
-      padding: 2rem 0;
-      text-align: center;
+    .navbar {
+      padding: 0.5rem 1rem;
+      margin-bottom: 0;
     }
 
     .navbar-brand {
+      padding: 0;
+      margin: 0;
       display: flex;
       align-items: center;
-      gap: 1rem;
-      padding: 0.5rem 0;
+      gap: 0.5rem;
     }
 
-    .navbar-brand .logo-text {
+    .logo-text {
       font-family: 'DM Serif Display', serif;
       font-size: clamp(1.8rem, 5vw, 2.5rem);
       font-weight: 900;
       letter-spacing: 0.1rem;
       color: #fff;
       text-shadow: 0 2px 18px rgba(25, 118, 210, 0.75), 0 1px 2px var(--primary-bg);
+      display: inline-block;
+      vertical-align: middle;
     }
 
     .navbar-nav .nav-link {
@@ -93,6 +95,12 @@
       .nav-link {
         font-size: 1.1rem;
       }
+    }
+
+    .tm-hero {
+      padding: 1rem 0;
+      margin-top: 0;
+      text-align: center;
     }
 
     .movie-poster-wrapper {
@@ -460,39 +468,39 @@
 </head>
 <body>
   <header>
-  <nav class="navbar navbar-expand-lg">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="index.html" aria-label="MovieDck Home">
-        <span class="logo-text">MovieDck</span>
-      </a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <i class="fas fa-bars"></i>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav ml-auto">
-          <li class="nav-item">
-            <a class="nav-link active" id="nav-movies" href="#" aria-label="Trending Movies">Trending Movies</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" id="nav-tvshows" href="#" aria-label="Trending TV Shows">Trending TV Shows</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" id="nav-anime" href="#" aria-label="Trending Anime Movies">Trending Anime</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" id="nav-tagalog" href="#" aria-label="Trending Tagalog Movies">Tagalog Movies</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" id="nav-netflix" href="#" aria-label="Trending Netflix"><i class="fab fa-netflix"></i> Netflix</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" id="nav-favorites" href="#" aria-label="Favorites"><i class="fas fa-heart"></i> Favorites</a>
-          </li>
-        </ul>
+    <nav class="navbar navbar-expand-lg">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="index.html" aria-label="MovieDck Home">
+          <span class="logo-text">MovieDck</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+              <a class="nav-link active" id="nav-movies" href="#" aria-label="Trending Movies">Trending Movies</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="nav-tvshows" href="#" aria-label="Trending TV Shows">Trending TV Shows</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="nav-anime" href="#" aria-label="Trending Anime Movies">Trending Anime</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="nav-tagalog" href="#" aria-label="Trending Tagalog Movies">Tagalog Movies</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="nav-netflix" href="#" aria-label="Trending Netflix"><i class="fab fa-netflix"></i> Netflix</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="nav-favorites" href="#" aria-label="Favorites"><i class="fas fa-heart"></i> Favorites</a>
+            </li>
+          </ul>
+        </div>
       </div>
-    </div>
-  </nav>
-</header>
+    </nav>
+  </header>
 
   <main>
     <section class="tm-hero">
