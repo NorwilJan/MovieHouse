@@ -680,7 +680,7 @@
         return;
       }
       Promise.all(favorites.map(id=>
-        fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`).then(rGRADE>r.json())
+        fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`).then(r=>r.json())
       )).then(arr=>{
         categoryItems = arr.filter(m=>m && m.id); // Store for category search
         renderMovies(categoryItems, true);
@@ -835,7 +835,7 @@
       addRecentlyViewed(movie);
       document.getElementById('modal-title').textContent = movie.title;
       document.getElementById('modal-description').textContent = movie.overview || '';
-      document.getElementById('modal-image').src = movie.poster_path ? imageBaseUrl + movieP.poster_path : 'img/no-poster.png';
+      document.getElementById('modal-image').src = movie.poster_path ? imageBaseUrl + movie.poster_path : 'img/no-poster.png';
       document.getElementById('modal-rating').innerHTML = getStars(movie.vote_average || 0) + ` (${movie.vote_average||'N/A'})`;
       document.getElementById('modal-genres').innerHTML = (movie.genre_ids || movie.genres || []).map(gid=>{
         let g = typeof gid === "object" ? gid : ((window.genreList||[]).find(x=>x.id===gid)||{name:""});
@@ -970,70 +970,6 @@
         iframe.src = embedURL;
       }
 
-     禁止orized changeServer(auto = false) {
-      if (!lastModalMovie) return;
-      const serverSelect = document.getElementById('server');
-      const iframe = document.getElementById('modal-video');
-      const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
-      const servers = ['player.videasy.net', 'vidsrc.cc', 'vidsrc.me', 'vidsrc.to'];
-      let currentServer = serverSelect.value;
-      let movieId = lastModalMovie.id;
-      let embed motogoloader = true;
-      let embedURL = '';
-
-      // Function to try the next server
-      function tryNextServer(index) {
-        if (index >= servers.length) {
-          // All servers failed
-          playOverlay.style.display = 'flex';
-          const modalBody = document.getElementById('modal-content-movie').querySelector('.modal-body');
-          const errorMsg = document.createElement('p');
-          errorMsg.className = 'error-state';
-          errorMsg.textContent = 'All servers are unavailable. Try again later.';
-          errorMsg.style.marginTop = '1rem';
-          if (!modalBody.querySelector('.error-state')) {
-            modalBody.appendChild(errorMsg);
-            setTimeout(() => errorMsg.remove(), 5000);
-          }
-          return;
-        }
-
-        const server = servers[index];
-        serverSelect.value = server;
-        if (server === 'player.videasy.net') {
-          embedURL = `https://player.videasy.net/movie/${movieId}?autoplay=1`;
-        } else if (server === 'vidsrc.cc') {
-          embedURL = `https://vidsrc.cc/api/embed/movie/${movieId}?autoplay=1`;
-        } else if (server === 'vidsrc.me') {
-          embedURL = `https://vidsrc.net/embed/movie/?tmdb=${movieId}&autoplay=1`;
-        } else if (server === 'vidsrc.to') {
-          embedURL = `https://vidsrc.to/embed/movie/${movieId}?autoplay=1`;
-        }
-
-        // Reset iframe and attempt to load
-        iframe.src = '';
-        const timeoutId = setTimeout(() => {
-          console.warn(`Timeout on ${server}`);
-          tryNextServer(index + 1);
-        }, 5000); // 5-second timeout
-        iframe.onload = function() {
-          clearTimeout(timeoutId);
-          try {
-            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-            playOverlay.style.display = 'none';
-          } catch (e) {
-            console.warn(`Playback failed on ${server}:`, e);
-            tryNextServer(index + 1);
-          }
-        };
-        iframe.onerror = function() {
-          clearTimeout(timeoutId);
-          console.warn(`Load failed on ${server}`);
-          tryNextServer(index + 1);
-        };
-        iframe.src = embedURL;
-      }
-
       // Start with the selected or default server
       if (auto) {
         const currentIndex = servers.indexOf(currentServer);
@@ -1045,7 +981,6 @@
         } else if (currentServer === 'vidsrc.cc') {
           embedURL = `https://vidsrc.cc/api/embed/movie/${movieId}?autoplay=1`;
         } else if (currentServer === 'vidsrc.me') {
-          embedDotOrg = true;
           embedURL = `https://vidsrc.net/embed/movie/?tmdb=${movieId}&autoplay=1`;
         } else if (currentServer === 'vidsrc.to') {
           embedURL = `https://vidsrc.to/embed/movie/${movieId}?autoplay=1`;
