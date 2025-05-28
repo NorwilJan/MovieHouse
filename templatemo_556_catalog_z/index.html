@@ -759,12 +759,7 @@
           url = `https://api.themoviedb.org/3/search/multi?api_key=${CONFIG.apiKey}&query=${encodeURIComponent(query)}&page=${page}`; 
           break;
         case 'favorites':
-          // Validate favorites array
-          const validFavorites = state.favorites.filter(f => f && typeof f === 'object' && f.id && f.type);
-          if (!validFavorites.length) return [];
-          const fetchPromises = validFavorites.map(f => fetchFavoriteDetails(f));
-          const items = await Promise.all(fetchPromises);
-          return items.filter(item => item !== null).slice(0, 3);
+          return state.favorites.map(f => fetchFavoriteDetails(f)).filter(item => item !== null).slice(0, 3);
         default: 
           url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${CONFIG.apiKey}&page=${page}`; 
       }
@@ -818,7 +813,6 @@
     };
 
     const fetchFavoriteDetails = async (favorite) => {
-      if (!favorite || !favorite.id || !favorite.type) return null;
       const { id, type } = favorite;
       try {
         const url = `https://api.themoviedb.org/3/${type}/${id}?api_key=${CONFIG.apiKey}`;
@@ -858,9 +852,7 @@
       if (mode === 'favorites') {
         items = await fetchItems('favorites');
         if (items.length < 3 && state.favorites.length > items.length) {
-          const validFavorites = state.favorites.filter(f => f && typeof f === 'object' && f.id && f.type);
-          const additionalPromises = validFavorites.slice(items.length, 3).map(f => fetchFavoriteDetails(f));
-          const additionalItems = await Promise.all(additionalPromises);
+          const additionalItems = await Promise.all(state.favorites.slice(items.length, 3).map(f => fetchFavoriteDetails(f)));
           items = [...items, ...additionalItems.filter(item => item !== null)];
         }
       } else {
@@ -868,24 +860,15 @@
       }
       state.carouselItems = items.slice(0, 3);
       const carouselInner = document.getElementById('carousel-inner');
-
-      if (!state.carouselItems.length) {
-        carouselInner.innerHTML = '<div class="text-center text-warning">No items to display.</div>';
-        return;
-      }
-
-      carouselInner.innerHTML = state.carouselItems.map((item, index) => {
-        if (!item || !item.id) return '';
-        return `
-          <div class="carousel-item${index === 0 ? ' active' : ''}" data-id="${item.id}" data-type="${item.media_type}">
-            <img src="${item.backdrop_path ? 'https://image.tmdb.org/t/p/original' + item.backdrop_path : '/img/no-poster.png'}" class="d-block w-100" alt="${item.title || item.name || 'Untitled'}">
-            <div class="carousel-caption d-none d-md-block">
-              <h5 class="carousel-title">${item.title || item.name || 'Untitled'}</h5>
-              <p>${item.overview ? item.overview.slice(0, 100) + '...' : 'No description available.'}</p>
-            </div>
+      carouselInner.innerHTML = state.carouselItems.map((item, index) => `
+        <div class="carousel-item${index === 0 ? ' active' : ''}" data-id="${item.id}">
+          <img src="${item.backdrop_path ? 'https://image.tmdb.org/t/p/original' + item.backdrop_path : '/img/no-poster.png'}" class="d-block w-100" alt="${item.title || item.name}">
+          <div class="carousel-caption d-none d-md-block">
+            <h5 class="carousel-title">${item.title || item.name}</h5>
+            <p>${item.overview ? item.overview.slice(0, 100) + '...' : ''}</p>
           </div>
-        `;
-      }).filter(Boolean).join('');
+        </div>
+      `).join('');
 
       // Initialize the Bootstrap carousel after rendering items
       if (state.carouselItems.length > 0) {
@@ -901,6 +884,8 @@
             pause: 'hover'
           });
         }
+      } else {
+        carouselInner.innerHTML = '<div class="text-center text-warning">No items to display.</div>';
       }
     };
 
@@ -1096,7 +1081,7 @@
           document.querySelector('.nav-link.active').classList.remove('active');
           link.classList.add('active');
           resetContent();
-          await renderCarousel(state.currentMode);
+          await renderCarousel(state.currentMode); // Update carousel based on selected mode
         });
       });
 
@@ -1122,12 +1107,11 @@
         const itemEl = e.target.closest('.carousel-item');
         if (!itemEl) return;
         const id = itemEl.dataset.id;
-        const type = itemEl.dataset.type;
         const item = state.carouselItems.find(i => i.id == id);
         if (item) {
           try {
-            const fullItem = await fetch(`https://api.themoviedb.org/3/${type || item.media_type || 'movie'}/${id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
-            fullItem.media_type = type || item.media_type || 'movie';
+            const fullItem = await fetch(`https://api.themoviedb.org/3/${item.media_type || 'movie'}/${id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+            fullItem.media_type = item.media_type || 'movie';
             fullItem.media_type === 'tv' ? showTvModal(fullItem) : showMovieModal(fullItem);
           } catch (e) {
             showError('Error loading carousel item.');
