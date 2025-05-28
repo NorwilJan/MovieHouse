@@ -102,6 +102,27 @@
       background: var(--accent-hover);
     }
 
+    /* Netflix Filter */
+    .netflix-filter {
+      margin-bottom: 1rem;
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    .netflix-filter label {
+      font-size: clamp(0.9rem, 2vw, 1rem);
+    }
+
+    .netflix-filter select {
+      background: var(--secondary-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: clamp(0.85rem, 2vw, 1rem);
+    }
+
     /* Carousel */
     .carousel {
       margin-bottom: 2rem;
@@ -508,6 +529,13 @@
 
   <div class="container-fluid py-4">
     <div id="content-section">
+      <div class="netflix-filter" id="netflix-filter" style="display: none;">
+        <label for="netflix-type">Type:</label>
+        <select id="netflix-type">
+          <option value="movie">Movies</option>
+          <option value="tv">TV Shows</option>
+        </select>
+      </div>
       <div class="row row-cols-1 row-cols-md-4 g-4" id="movie-list"></div>
     </div>
   </div>
@@ -588,7 +616,7 @@
   <script>
     // Configuration
     const CONFIG = {
-      apiKey: '40f1982842db35042e8561b13b38d492', // Updated with your API key
+      apiKey: '40f1982842db35042e8561b13b38d492',
       imageBaseUrl: 'https://image.tmdb.org/t/p/w500',
       servers: ['player.videasy.net', 'vidsrc.cc', 'vidsrc.me', 'vidsrc.to']
     };
@@ -604,7 +632,8 @@
       reachedEnd: false,
       lastModalItem: null,
       tvModalData: { tvId: null, season: null, episode: null, seasons: [] },
-      searchQuery: ''
+      searchQuery: '',
+      netflixType: 'movie' // Default to movies for Netflix
     };
 
     // Utility Functions
@@ -612,17 +641,23 @@
       container.innerHTML = `<div class="text-center text-warning">${message}</div>`;
     };
 
-    const toggleFavorite = (id) => {
-      state.favorites = state.favorites.includes(id)
-        ? state.favorites.filter(f => f !== id)
-        : [...state.favorites, id];
+    const toggleFavorite = (id, type) => {
+      const itemIndex = state.favorites.findIndex(f => f.id === id && f.type === type);
+      if (itemIndex > -1) {
+        state.favorites.splice(itemIndex, 1);
+      } else {
+        state.favorites.push({ id, type });
+      }
       localStorage.setItem('favorites', JSON.stringify(state.favorites));
       updateFavoriteButtons();
     };
 
     const updateFavoriteButtons = () => {
       document.querySelectorAll('.favorite-btn').forEach(btn => {
-        btn.classList.toggle('favorited', state.favorites.includes(parseInt(btn.dataset.id)));
+        const id = parseInt(btn.dataset.id);
+        const type = btn.dataset.type;
+        const isFavorited = state.favorites.some(f => f.id === id && f.type === type);
+        btn.classList.toggle('favorited', isFavorited);
       });
     };
 
@@ -640,27 +675,58 @@
     // API and Rendering
     const fetchItems = async (mode, page = 1, query = '') => {
       let url;
+      let type = 'movie';
       switch (mode) {
-        case 'tvshows': url = `https://api.themoviedb.org/3/trending/tv/day?api_key=${CONFIG.apiKey}&page=${page}`; break;
-        case 'anime': url = `https://api.themoviedb.org/3/discover/movie?api_key=${CONFIG.apiKey}&with_genres=16&sort_by=popularity.desc&page=${page}`; break;
-        case 'tagalog': url = `https://api.themoviedb.org/3/discover/movie?api_key=${CONFIG.apiKey}&with_original_language=tl&sort_by=popularity.desc&page=${page}`; break;
-        case 'netflix': url = `https://api.themoviedb.org/3/discover/movie?api_key=${CONFIG.apiKey}&with_watch_providers=8&sort_by=popularity.desc&page=${page}`; break;
-        case 'favorites': return state.favorites.map(id => ({ id })); // Placeholder for favorites
-        case 'search': url = `https://api.themoviedb.org/3/search/multi?api_key=${CONFIG.apiKey}&query=${encodeURIComponent(query)}&page=${page}`; break;
-        default: url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${CONFIG.apiKey}&page=${page}`; // Default to movies
+        case 'tvshows': 
+          url = `https://api.themoviedb.org/3/trending/tv/day?api_key=${CONFIG.apiKey}&page=${page}`; 
+          type = 'tv';
+          break;
+        case 'anime': 
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${CONFIG.apiKey}&with_genres=16&sort_by=popularity.desc&page=${page}`; 
+          break;
+        case 'tagalog': 
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${CONFIG.apiKey}&with_original_language=tl&sort_by=popularity.desc&page=${page}`; 
+          break;
+        case 'netflix': 
+          if (state.netflixType === 'tv') {
+            url = `https://api.themoviedb.org/3/discover/tv?api_key=${CONFIG.apiKey}&with_watch_providers=8&sort_by=popularity.desc&page=${page}`;
+            type = 'tv';
+          } else {
+            url = `https://api.themoviedb.org/3/discover/movie?api_key=${CONFIG.apiKey}&with_watch_providers=8&sort_by=popularity.desc&page=${page}`;
+          }
+          break;
+        case 'search': 
+          url = `https://api.themoviedb.org/3/search/multi?api_key=${CONFIG.apiKey}&query=${encodeURIComponent(query)}&page=${page}`; 
+          break;
+        default: 
+          url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${CONFIG.apiKey}&page=${page}`; 
       }
       try {
-        console.log(`Fetching from: ${url}`); // Debug log
+        console.log(`Fetching from: ${url}`);
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        console.log('Fetched data:', data); // Debug log
+        console.log('Fetched data:', data);
         state.totalPages = data.total_pages || 1;
-        return data.results || [];
+        return (data.results || []).map(item => ({ ...item, media_type: item.media_type || type }));
       } catch (e) {
-        console.error('Fetch error:', e); // Debug error
-        showError('Failed to load content. Please check your API key or connection.');
+        console.error('Fetch error:', e);
+        showError('Failed to load content. This might be due to regional restrictions or API issues.');
         return [];
+      }
+    };
+
+    const fetchFavoriteDetails = async (favorite) => {
+      const { id, type } = favorite;
+      try {
+        const url = `https://api.themoviedb.org/3/${type}/${id}?api_key=${CONFIG.apiKey}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return { ...data, media_type: type };
+      } catch (e) {
+        console.error(`Error fetching favorite ${id}:`, e);
+        return null;
       }
     };
 
@@ -672,22 +738,22 @@
         return;
       }
       container.innerHTML += items
-        .filter(item => item.media_type !== 'person') // Exclude people from search results
+        .filter(item => item && item.media_type !== 'person')
         .map(item => `
-          <div class="col movie-col" data-id="${item.id}" data-type="${item.media_type || (state.currentMode === 'tvshows' ? 'tv' : 'movie')}">
+          <div class="col movie-col" data-id="${item.id}" data-type="${item.media_type}">
             <div class="movie-poster position-relative">
-              <img src="${item.poster_path ? CONFIG.imageBaseUrl + item.poster_path : '/img/no-poster.png'}" alt="${item.title || item.name}" class="img-fluid">
+              <img src="${item.poster_path ? CONFIG.imageBaseUrl + item.poster_path : '/img/no-poster.png'}" alt="${item.title || item.name || 'Untitled'}" class="img-fluid">
               <button class="play-overlay"><i class="fas fa-play"></i></button>
-              <button class="favorite-btn${state.favorites.includes(item.id) ? ' favorited' : ''}" data-id="${item.id}"><i class="fas fa-heart"></i></button>
+              <button class="favorite-btn${state.favorites.some(f => f.id === item.id && f.type === item.media_type) ? ' favorited' : ''}" data-id="${item.id}" data-type="${item.media_type}"><i class="fas fa-heart"></i></button>
             </div>
-            <div class="movie-title">${item.title || item.name}</div>
+            <div class="movie-title">${item.title || item.name || 'Untitled'}</div>
           </div>
         `).join('');
     };
 
     const renderCarousel = async () => {
       const items = await fetchItems('movies', 1);
-      state.carouselItems = items.slice(0, 3); // Store for click handling
+      state.carouselItems = items.slice(0, 3);
       const carouselInner = document.getElementById('carousel-inner');
       carouselInner.innerHTML = state.carouselItems.map((item, index) => `
         <div class="carousel-item${index === 0 ? ' active' : ''}" data-id="${item.id}">
@@ -850,7 +916,13 @@
     const loadMoreItems = async (clear = false) => {
       if (state.isLoading || state.reachedEnd) return;
       state.isLoading = true;
-      const items = await fetchItems(state.currentMode, state.currentPage, state.searchQuery);
+      let items = [];
+      if (state.currentMode === 'favorites') {
+        const promises = state.favorites.map(favorite => fetchFavoriteDetails(favorite));
+        items = (await Promise.all(promises)).filter(item => item !== null);
+      } else {
+        items = await fetchItems(state.currentMode, state.currentPage, state.searchQuery);
+      }
       if (items.length) {
         renderItems(items, clear);
         state.currentPage++;
@@ -864,6 +936,8 @@
     const resetContent = () => {
       state.currentPage = 1;
       state.reachedEnd = false;
+      const netflixFilter = document.getElementById('netflix-filter');
+      netflixFilter.style.display = state.currentMode === 'netflix' ? 'flex' : 'none';
       loadMoreItems(true);
     };
 
@@ -873,13 +947,14 @@
       const modal = document.getElementById('modal');
       const carouselInner = document.getElementById('carousel-inner');
       const searchInput = document.getElementById('search-input');
+      const netflixTypeSelect = document.getElementById('netflix-type');
 
       document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
           e.preventDefault();
           state.currentMode = link.id.replace('nav-', '');
-          state.searchQuery = ''; // Clear search query
-          searchInput.value = ''; // Clear search input
+          state.searchQuery = '';
+          searchInput.value = '';
           document.querySelector('.nav-link.active').classList.remove('active');
           link.classList.add('active');
           resetContent();
@@ -889,13 +964,17 @@
       movieList.addEventListener('click', async (e) => {
         const col = e.target.closest('.movie-col');
         if (!col) return;
-        const id = col.dataset.id;
+        const id = parseInt(col.dataset.id);
         const type = col.dataset.type;
         if (e.target.classList.contains('favorite-btn') || e.target.parentElement.classList.contains('favorite-btn')) {
-          toggleFavorite(parseInt(id));
+          toggleFavorite(id, type);
+          if (state.currentMode === 'favorites') {
+            resetContent();
+          }
         } else {
           try {
             const item = await fetch(`https://api.themoviedb.org/3/${type}/${id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+            item.media_type = type;
             type === 'tv' ? showTvModal(item) : showMovieModal(item);
           } catch (e) {
             showError('Error loading item.');
@@ -996,10 +1075,15 @@
       searchInput.addEventListener('input', () => {
         const query = searchInput.value.trim();
         if (!query && state.currentMode === 'search') {
-          state.currentMode = 'movies'; // Revert to default mode
+          state.currentMode = 'movies';
           state.searchQuery = '';
           resetContent();
         }
+      });
+
+      netflixTypeSelect.addEventListener('change', () => {
+        state.netflixType = netflixTypeSelect.value;
+        resetContent();
       });
 
       window.addEventListener('scroll', () => {
