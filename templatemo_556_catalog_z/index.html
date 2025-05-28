@@ -134,6 +134,16 @@
       color: var(--accent-color);
     }
 
+    /* Fallback Message */
+    .fallback-message {
+      text-align: center;
+      padding: 1rem;
+      background: var(--secondary-bg);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: clamp(0.9rem, 2vw, 1rem);
+    }
+
     /* Carousel */
     .carousel {
       margin-bottom: 2rem;
@@ -552,6 +562,9 @@
           <span class="visually-hidden">Loading...</span>
         </div>
       </div>
+      <div class="fallback-message" id="fallback-message" style="display: none;">
+        Unable to load Netflix-specific content due to regional restrictions. Showing trending content instead.
+      </div>
       <div class="row row-cols-1 row-cols-md-4 g-4" id="movie-list"></div>
     </div>
   </div>
@@ -634,7 +647,8 @@
     const CONFIG = {
       apiKey: '40f1982842db35042e8561b13b38d492',
       imageBaseUrl: 'https://image.tmdb.org/t/p/w500',
-      servers: ['player.videasy.net', 'vidsrc.cc', 'vidsrc.me', 'vidsrc.to']
+      servers: ['player.videasy.net', 'vidsrc.cc', 'vidsrc.me', 'vidsrc.to'],
+      watchRegion: 'US' // Default region for Netflix content
     };
 
     // State
@@ -649,7 +663,8 @@
       lastModalItem: null,
       tvModalData: { tvId: null, season: null, episode: null, seasons: [] },
       searchQuery: '',
-      netflixType: 'movie'
+      netflixType: 'movie',
+      isNetflixFallback: false
     };
 
     // Utility Functions
@@ -696,7 +711,10 @@
       let url;
       let type = 'movie';
       const spinner = document.getElementById('loading-spinner');
+      const fallbackMessage = document.getElementById('fallback-message');
       spinner.style.display = 'block';
+      fallbackMessage.style.display = 'none';
+      state.isNetflixFallback = false;
 
       switch (mode) {
         case 'tvshows': 
@@ -710,12 +728,9 @@
           url = `https://api.themoviedb.org/3/discover/movie?api_key=${CONFIG.apiKey}&with_original_language=tl&sort_by=popularity.desc&page=${page}`; 
           break;
         case 'netflix': 
-          if (state.netflixType === 'tv') {
-            url = `https://api.themoviedb.org/3/trending/tv/day?api_key=${CONFIG.apiKey}&page=${page}`; 
-            type = 'tv';
-          } else {
-            url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${CONFIG.apiKey}&page=${page}`; 
-          }
+          type = state.netflixType === 'tv' ? 'tv' : 'movie';
+          // Primary attempt: Fetch Netflix-specific content
+          url = `https://api.themoviedb.org/3/discover/${type}?api_key=${CONFIG.apiKey}&with_watch_providers=8&watch_region=${CONFIG.watchRegion}&sort_by=popularity.desc&page=${page}`;
           break;
         case 'search': 
           url = `https://api.themoviedb.org/3/search/multi?api_key=${CONFIG.apiKey}&query=${encodeURIComponent(query)}&page=${page}`; 
@@ -723,20 +738,51 @@
         default: 
           url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${CONFIG.apiKey}&page=${page}`; 
       }
+
       try {
         console.log(`Fetching from: ${url}`);
         const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         console.log('Fetched data:', data);
+
+        // If Netflix fetch returns no results, try the fallback
+        if (mode === 'netflix' && (!data.results || data.results.length === 0)) {
+          throw new Error('No Netflix content available');
+        }
+
         state.totalPages = data.total_pages || 1;
         return (data.results || []).map(item => ({ ...item, media_type: item.media_type || type }));
       } catch (e) {
         console.error('Fetch error:', e);
+
+        // Fallback for Netflix tab
+        if (mode === 'netflix') {
+          console.log('Falling back to trending endpoint...');
+          state.isNetflixFallback = true;
+          fallbackMessage.style.display = 'block';
+          const fallbackUrl = `https://api.themoviedb.org/3/trending/${type}/day?api_key=${CONFIG.apiKey}&page=${page}`;
+          try {
+            console.log(`Fetching fallback from: ${fallbackUrl}`);
+            const fallbackResponse = await fetch(fallbackUrl, { signal: AbortSignal.timeout(10000) });
+            if (!fallbackResponse.ok) throw new Error(`HTTP ${fallbackResponse.status}`);
+            const fallbackData = await fallbackResponse.json();
+            console.log('Fallback data:', fallbackData);
+            state.totalPages = fallbackData.total_pages || 1;
+            return (fallbackData.results || []).map(item => ({ ...item, media_type: item.media_type || type }));
+          } catch (fallbackError) {
+            console.error('Fallback fetch error:', fallbackError);
+            showError('Failed to load content. Please check your internet connection or try again later.');
+            return [];
+          }
+        }
+
+        // Retry for non-Netflix modes
         if (retries > 0) {
           console.log(`Retrying... (${retries} attempts left)`);
           return await fetchItems(mode, page, query, retries - 1);
         }
+
         showError('Failed to load content. Please check your internet connection or try again later.');
         return [];
       } finally {
