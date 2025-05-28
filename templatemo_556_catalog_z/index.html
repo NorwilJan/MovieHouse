@@ -301,6 +301,12 @@
       to { transform: rotate(360deg); }
     }
 
+    .iframe-container {
+      position: relative;
+      width: 100%;
+      margin: 1rem auto;
+    }
+
     #modal-video, #tv-episode-player {
       width: 100%;
       aspect-ratio: 16/9;
@@ -310,12 +316,6 @@
       border-radius: 6px;
       background: #111;
       border: none;
-    }
-
-    .iframe-container {
-      position: relative;
-      width: 100%;
-      margin: 1rem auto;
     }
 
     .iframe-play-overlay {
@@ -343,6 +343,33 @@
     .iframe-play-overlay:focus {
       background: var(--accent-hover);
       transform: translate(-50%, -50%) scale(1.1);
+      outline: none;
+    }
+
+    .fullscreen-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--accent-color);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 6;
+      cursor: pointer;
+      opacity: 0.9;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .fullscreen-btn:hover,
+    .fullscreen-btn:focus {
+      background: var(--accent-hover);
+      transform: scale(1.1);
       outline: none;
     }
 
@@ -597,6 +624,9 @@
         <button class="iframe-play-overlay" aria-label="Play movie">
           <i class="fas fa-play"></i>
         </button>
+        <button class="fullscreen-btn" id="fullscreen-btn" aria-label="Toggle full screen">
+          <i class="fas fa-expand"></i>
+        </button>
       </div>
       <div id="similar-movies" style="padding: 1rem 2rem;"></div>
     </div>
@@ -623,6 +653,9 @@
         <iframe id="tv-episode-player" allowfullscreen style="display: none;"></iframe>
         <button class="iframe-play-overlay" aria-label="Play TV episode">
           <i class="fas fa-play"></i>
+        </button>
+        <button class="fullscreen-btn" id="tv-fullscreen-btn" aria-label="Toggle full screen">
+          <i class="fas fa-expand"></i>
         </button>
       </div>
       <div style="display: flex; justify-content: center;">
@@ -1308,6 +1341,24 @@
         } else if (e.target.closest('.tv-episode-play-btn')) {
           const { tvId, season, episode } = e.target.dataset;
           playTvEpisode(tvId, season, episode);
+        } else if (e.target.closest('#fullscreen-btn')) {
+          const iframe = document.getElementById('modal-video');
+          if (iframe.requestFullscreen) {
+            await iframe.requestFullscreen();
+          } else if (iframe.webkitRequestFullscreen) { // Safari
+            await iframe.webkitRequestFullscreen();
+          } else if (iframe.msRequestFullscreen) { // IE/Edge
+            await iframe.msRequestFullscreen();
+          }
+        } else if (e.target.closest('#tv-fullscreen-btn')) {
+          const iframe = document.getElementById('tv-episode-player');
+          if (iframe.requestFullscreen) {
+            await iframe.requestFullscreen();
+          } else if (iframe.webkitRequestFullscreen) { // Safari
+            await iframe.webkitRequestFullscreen();
+          } else if (iframe.msRequestFullscreen) { // IE/Edge
+            await iframe.msRequestFullscreen();
+          }
         }
       });
 
