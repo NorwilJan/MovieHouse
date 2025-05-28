@@ -47,35 +47,16 @@
 
     /* Navbar */
     .navbar {
-      padding: 0;
+      padding: 0.75rem 1rem;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
       width: 100%;
-      flex-direction: column;
-    }
-
-    .navbar-logo-container {
-      width: 100%;
-      background: var(--primary-bg);
-      padding: 1rem;
-      text-align: center;
-      border-bottom: 1px solid var(--border-color);
     }
 
     .navbar-brand {
       font-family: 'DM Serif Display', serif;
-      font-size: clamp(2.5rem, 6vw, 3.5rem); /* Increased size for prominence */
+      font-size: clamp(1.8rem, 5vw, 2.2rem);
       color: var(--accent-color);
       text-shadow: 0 2px 8px var(--accent-hover);
-      margin: 0;
-    }
-
-    .navbar-nav-container {
-      width: 100%;
-      padding: 0.5rem 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
     }
 
     .nav-tabs {
@@ -83,7 +64,6 @@
       flex-wrap: nowrap;
       overflow-x: auto;
       white-space: nowrap;
-      margin-bottom: 0;
     }
 
     .nav-link {
@@ -527,10 +507,8 @@
 </head>
 <body>
   <nav class="navbar navbar-expand-lg">
-    <div class="navbar-logo-container">
+    <div class="container-fluid">
       <a class="navbar-brand" href="#">MovieDck</a>
-    </div>
-    <div class="navbar-nav-container">
       <ul class="nav nav-tabs">
         <li class="nav-item">
           <a class="nav-link active" id="nav-movies" href="#">Movies</a>
@@ -551,7 +529,7 @@
           <a class="nav-link" id="nav-favorites" href="#">Favorites</a>
         </li>
       </ul>
-      <form class="d-flex search-form" id="search-form">
+      <form class="d-flex ms-auto search-form" id="search-form">
         <input class="form-control me-2" type="search" id="search-input" placeholder="Search movies or TV shows..." aria-label="Search">
         <button class="btn btn-outline-light" type="submit"><i class="fas fa-search"></i></button>
       </form>
@@ -670,7 +648,7 @@
       apiKey: '40f1982842db35042e8561b13b38d492',
       imageBaseUrl: 'https://image.tmdb.org/t/p/w500',
       servers: ['player.videasy.net', 'vidsrc.cc', 'vidsrc.me', 'vidsrc.to'],
-      watchRegion: 'US'
+      watchRegion: 'US' // Default region for Netflix content
     };
 
     // State
@@ -751,6 +729,7 @@
           break;
         case 'netflix': 
           type = state.netflixType === 'tv' ? 'tv' : 'movie';
+          // Primary attempt: Fetch Netflix-specific content
           url = `https://api.themoviedb.org/3/discover/${type}?api_key=${CONFIG.apiKey}&with_watch_providers=8&watch_region=${CONFIG.watchRegion}&sort_by=popularity.desc&page=${page}`;
           break;
         case 'search': 
@@ -767,6 +746,7 @@
         const data = await response.json();
         console.log('Fetched data:', data);
 
+        // If Netflix fetch returns no results, try the fallback
         if (mode === 'netflix' && (!data.results || data.results.length === 0)) {
           throw new Error('No Netflix content available');
         }
@@ -776,6 +756,7 @@
       } catch (e) {
         console.error('Fetch error:', e);
 
+        // Fallback for Netflix tab
         if (mode === 'netflix') {
           console.log('Falling back to trending endpoint...');
           state.isNetflixFallback = true;
@@ -796,6 +777,7 @@
           }
         }
 
+        // Retry for non-Netflix modes
         if (retries > 0) {
           console.log(`Retrying... (${retries} attempts left)`);
           return await fetchItems(mode, page, query, retries - 1);
