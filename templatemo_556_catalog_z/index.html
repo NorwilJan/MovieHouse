@@ -12,7 +12,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css" integrity="sha512-rt/SrQ4ikXaW6R7Zf0zP3wW3D5qDRBUD8u4aM6L9/6u3j2zM6L9w==" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw==" crossorigin="anonymous">
   <style>
-    /* Existing styles remain unchanged */
     :root {
       --primary-bg: #15191e;
       --secondary-bg: #1a1f25;
@@ -1192,6 +1191,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       const modal = document.getElementById('modal');
       const movieList = document.getElementById('movie-list');
+      const recentlyViewedList = document.getElementById('recently-viewed-list');
       const searchForm = document.getElementById('movie-search-form');
       const searchInput = document.getElementById('movie-search-input');
       const categorySearchForm = document.getElementById('category-search-form');
@@ -1231,7 +1231,7 @@
         });
       });
 
-      // Movie List
+      // Movie List Click Handler
       movieList.addEventListener('click', async e => {
         const col = e.target.closest('.movie-col');
         if (!col) return;
@@ -1246,6 +1246,26 @@
           } catch (e) {
             showError('Error loading item details.');
           }
+        }
+      });
+
+      // Recently Viewed Click Handler
+      recentlyViewedList.addEventListener('click', async e => {
+        const col = e.target.closest('.movie-col');
+        if (!col) return;
+        const id = col.dataset.id;
+        try {
+          // Determine if it's a movie or TV show based on stored data or fetch details
+          const recentlyViewedItem = state.recentlyViewed.find(item => item.id === parseInt(id));
+          if (!recentlyViewedItem) return; // Safety check
+          const fullItem = await fetch(`https://api.themoviedb.org/3/${recentlyViewedItem.title.includes('Episode') ? 'tv' : 'movie'}/${id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+          if (fullItem.media_type === 'tv' || fullItem.name) {
+            showTvModal(fullItem);
+          } else {
+            showMovieModal(fullItem);
+          }
+        } catch (e) {
+          showError('Error loading recently viewed item.');
         }
       });
 
@@ -1296,8 +1316,6 @@
 
       // Subtitle Toggle
       document.getElementById('subtitle-toggle').addEventListener('change', (e) => {
-        // Since we're using iframes, toggling subtitles dynamically isn't supported.
-        // You'd need to reload the video with subtitle parameters if the server supports it.
         console.warn('Subtitle toggle not fully supported with iframe-based players.');
         changeServer();
       });
