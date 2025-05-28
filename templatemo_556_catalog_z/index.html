@@ -8,22 +8,21 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=DM+Serif+Display&display=swap">
-  <!-- Bootstrap and Video.js -->
+  <!-- Bootstrap and Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnS0PnZ2tH7AZ1dU5N1wJLYW8zQ2F7n5vZ7g0v8Gq7pA2oD5X8v8zX0j6tZ9kHIO6Y8eR7Do1h8x3z9l8lvJgg==" crossorigin="anonymous">
-  <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw==" crossorigin="anonymous">
   <style>
     :root {
       --primary-bg: #1a1e24;
-      --secondary-bg: #222831;
+      --secondary-bg: #252a32;
       --modal-bg: #2d343d;
       --accent-color: #00adb5;
       --accent-hover: #00e1e6;
-      --text-color: #eeeeee;
-      --border-color: #333;
+      --text-color: #e0e0e0;
+      --border-color: #444;
       --favorite-color: #ff4757;
-      --shadow-light: 0 2px 10px rgba(0, 0, 0, 0.5);
-      --shadow-accent: 0 8px 32px rgba(0, 173, 181, 0.5);
+      --shadow-light: 0 2px 10px rgba(0, 0, 0, 0.4);
+      --shadow-accent: 0 8px 32px rgba(0, 173, 181, 0.4);
     }
 
     * { box-sizing: border-box; }
@@ -33,7 +32,7 @@
       color: var(--text-color);
       font-family: 'Montserrat', Arial, sans-serif;
       margin: 0;
-      line-height: 1.5;
+      line-height: 1.6;
     }
 
     .container-fluid, .modal-content, .navbar, .footer {
@@ -44,15 +43,13 @@
 
     /* Navbar */
     .navbar {
-      padding: 0.5rem 0;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      padding: 0.75rem 0;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
     }
 
     .navbar-brand {
-      padding: 0;
-      margin: 0 1rem;
       font-family: 'DM Serif Display', serif;
-      font-size: 2rem;
+      font-size: 2.2rem;
       color: var(--accent-color);
       text-shadow: 0 2px 8px var(--accent-hover);
     }
@@ -63,9 +60,9 @@
 
     .nav-link {
       color: var(--text-color) !important;
-      font-size: 1rem;
-      padding: 0.5rem 1rem;
-      transition: color 0.2s;
+      font-size: 1.1rem;
+      padding: 0.75rem 1.5rem;
+      transition: color 0.2s, background 0.2s;
     }
 
     .nav-link.active, .nav-link:hover {
@@ -74,43 +71,71 @@
       border-bottom: 2px solid var(--accent-color);
     }
 
+    /* Search Form */
+    .search-form {
+      max-width: 400px;
+    }
+
+    .search-form input {
+      background: var(--secondary-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+    }
+
+    .search-form button {
+      background: var(--accent-color);
+      border: none;
+      transition: background 0.2s;
+    }
+
+    .search-form button:hover {
+      background: var(--accent-hover);
+    }
+
     /* Carousel */
     .carousel {
-      margin-bottom: 1.5rem;
+      margin-bottom: 2rem;
     }
 
     .carousel-item img {
-      height: 400px;
+      height: 450px;
       object-fit: cover;
-      filter: brightness(70%);
+      filter: brightness(60%);
     }
 
     .carousel-caption {
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.7);
       padding: 1rem;
       border-radius: 8px;
+      bottom: 20%;
     }
 
     .carousel-title {
-      font-size: 2rem;
+      font-size: 1.8rem;
       margin-bottom: 0.5rem;
     }
 
     /* Movie Grid */
     .movie-col {
-      padding: 0.5rem;
+      padding: 0.75rem;
       cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .movie-col:hover {
+      transform: translateY(-5px);
     }
 
     .movie-poster {
       position: relative;
       overflow: hidden;
-      border-radius: 8px;
+      border-radius: 10px;
+      box-shadow: var(--shadow-light);
     }
 
     .movie-poster img {
       width: 100%;
-      height: 100%;
+      height: 300px;
       object-fit: cover;
       transition: transform 0.3s;
     }
@@ -144,11 +169,11 @@
 
     .favorite-btn {
       position: absolute;
-      top: 8px;
-      right: 8px;
+      top: 10px;
+      right: 10px;
       background: transparent;
       border: none;
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       color: #fff;
       cursor: pointer;
       transition: color 0.2s;
@@ -162,6 +187,14 @@
       color: var(--favorite-color);
     }
 
+    .movie-title {
+      font-size: 0.95rem;
+      margin-top: 0.5rem;
+      text-align: center;
+      display: block;
+      color: var(--text-color);
+    }
+
     /* Modal */
     .modal {
       display: none;
@@ -171,77 +204,113 @@
       top: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.9);
+      background: rgba(0, 0, 0, 0.95);
       align-items: center;
       justify-content: center;
+      overflow-y: auto;
     }
 
     .modal-content {
       background: var(--modal-bg);
       max-width: 900px;
-      width: 95%;
-      margin: 1rem;
-      border-radius: 10px;
+      width: 90%;
+      margin: 2rem auto;
+      border-radius: 12px;
       overflow: hidden;
+      position: relative;
     }
 
     .modal-header {
-      padding: 1rem;
+      padding: 1rem 1.5rem;
       border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 1.6rem;
+      margin: 0;
     }
 
     .modal-close {
-      font-size: 1.5rem;
+      font-size: 1.8rem;
       color: var(--accent-hover);
       background: none;
       border: none;
       cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .modal-close:hover {
+      opacity: 0.8;
     }
 
     .modal-body {
-      padding: 1.5rem;
+      padding: 2rem;
       display: flex;
-      gap: 1.5rem;
+      gap: 2rem;
+      flex-wrap: wrap;
     }
 
     .modal-poster {
       max-width: 200px;
       border-radius: 8px;
+      box-shadow: var(--shadow-light);
     }
 
-    .modal-details h2 {
-      margin-bottom: 0.5rem;
-      font-size: 1.8rem;
+    .modal-details {
+      flex: 1;
+      min-width: 300px;
+    }
+
+    .modal-details p {
+      font-size: 1rem;
+      margin-bottom: 1rem;
     }
 
     .modal-genres .badge {
       background: var(--accent-color);
       color: #fff;
       margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
     }
 
     .video-container {
       position: relative;
       width: 100%;
-      margin-top: 1rem;
+      margin-top: 1.5rem;
     }
 
-    .video-js {
+    #modal-video {
       width: 100%;
-      height: 500px;
+      aspect-ratio: 16/9;
+      border-radius: 8px;
       background: #000;
+      border: none;
     }
 
-    .quality-selector, .subtitle-toggle {
-      margin: 1rem 0;
+    .video-controls {
+      margin-top: 1rem;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
-    .quality-selector select, .subtitle-toggle input {
+    .video-controls select {
       background: var(--secondary-bg);
       color: var(--text-color);
       border: 1px solid var(--border-color);
       padding: 0.5rem;
       border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .video-controls label {
+      margin-right: 0.5rem;
     }
 
     .fullscreen-btn {
@@ -257,6 +326,7 @@
       font-size: 1.2rem;
       cursor: pointer;
       z-index: 10;
+      transition: background 0.2s;
     }
 
     .fullscreen-btn:hover {
@@ -268,6 +338,7 @@
       padding: 2rem 0;
       text-align: center;
       font-size: 0.9rem;
+      border-top: 1px solid var(--border-color);
     }
 
     .footer a {
@@ -278,6 +349,12 @@
     .footer a:hover {
       text-decoration: underline;
     }
+
+    /* Responsive Grid */
+    .row-cols-1 > * { flex: 0 0 100%; max-width: 100%; }
+    @media (min-width: 576px) { .row-cols-md-4 > * { flex: 0 0 25%; max-width: 25%; } }
+    @media (min-width: 768px) { .row-cols-md-4 > * { flex: 0 0 20%; max-width: 20%; } }
+    @media (min-width: 992px) { .row-cols-md-4 > * { flex: 0 0 16.666%; max-width: 16.666%; } }
   </style>
 </head>
 <body>
@@ -304,7 +381,7 @@
           <a class="nav-link" id="nav-favorites" href="#">Favorites</a>
         </li>
       </ul>
-      <form class="d-flex ms-auto" id="search-form">
+      <form class="d-flex ms-auto search-form" id="search-form">
         <input class="form-control me-2" type="search" id="search-input" placeholder="Search movies or TV shows..." aria-label="Search">
         <button class="btn btn-outline-light" type="submit"><i class="fas fa-search"></i></button>
       </form>
@@ -312,22 +389,7 @@
   </nav>
 
   <div id="carousel" class="carousel slide" data-bs-ride="carousel">
-    <div class="carousel-inner">
-      <div class="carousel-item active">
-        <img src="https://image.tmdb.org/t/p/original/placeholder.jpg" class="d-block w-100" alt="Trending Movie 1">
-        <div class="carousel-caption d-none d-md-block">
-          <h5 class="carousel-title">Trending Movie 1</h5>
-          <p>Watch now in HD!</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="https://image.tmdb.org/t/p/original/placeholder.jpg" class="d-block w-100" alt="Trending Movie 2">
-        <div class="carousel-caption d-none d-md-block">
-          <h5 class="carousel-title">Trending Movie 2</h5>
-          <p>Stream today!</p>
-        </div>
-      </div>
-    </div>
+    <div class="carousel-inner" id="carousel-inner"></div>
     <button class="carousel-control-prev" type="button" data-bs-target="#carousel" data-bs-slide="prev">
       <span class="carousel-control-prev-icon" aria-hidden="true"></span>
       <span class="visually-hidden">Previous</span>
@@ -348,31 +410,36 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="modal-title"></h5>
-        <button type="button" class="modal-close" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+        <button type="button" class="modal-close" data-bs-dismiss="modal" aria-label="Close">×</button>
       </div>
       <div class="modal-body">
         <img id="modal-poster" src="" alt="Poster" class="modal-poster">
         <div class="modal-details">
           <p id="modal-description"></p>
           <div id="modal-genres" class="modal-genres"></div>
-          <div class="quality-selector">
-            <label for="quality-select">Quality:</label>
-            <select id="quality-select" aria-label="Select video quality">
-              <option value="360p">360p</option>
-              <option value="720p" selected>720p</option>
-              <option value="1080p">1080p</option>
-            </select>
-          </div>
-          <div class="subtitle-toggle">
-            <label for="subtitle-toggle">Subtitles:</label>
-            <input type="checkbox" id="subtitle-toggle" checked>
-          </div>
           <div class="video-container">
-            <video-js id="modal-video" class="video-js vjs-default-skin" controls preload="auto">
-              <source src="" type="video/mp4">
-              <track kind="subtitles" src="" srclang="en" label="English" default>
-            </video-js>
+            <iframe id="modal-video" allowfullscreen></iframe>
             <button class="fullscreen-btn" id="fullscreen-btn"><i class="fas fa-expand"></i></button>
+          </div>
+          <div class="video-controls">
+            <div class="server-selector">
+              <label for="server-select">Server:</label>
+              <select id="server-select" aria-label="Select video server">
+                <option value="player.videasy.net">Player.Videasy.net</option>
+                <option value="vidsrc.cc">Vidsrc.cc</option>
+                <option value="vidsrc.me">Vidsrc.me</option>
+                <option value="vidsrc.to">Vidsrc.to</option>
+              </select>
+            </div>
+            <div class="quality-selector">
+              <label for="quality-select">Quality:</label>
+              <select id="quality-select" aria-label="Select video quality">
+                <option value="auto" selected>Auto</option>
+                <option value="360p">360p</option>
+                <option value="720p">720p</option>
+                <option value="1080p">1080p</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -381,20 +448,18 @@
 
   <footer class="footer mt-4">
     <div class="container">
-      <p>&copy; 2025 MovieDck. <a href="#">About</a> | <a href="#">Privacy</a></p>
+      <p>© 2025 MovieDck. <a href="#">About</a> | <a href="#">Privacy</a></p>
     </div>
   </footer>
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-0gnw5z2zS3C0kRN8W6v2x0l4x4w5g4Q/6rT5m8sQ7xFzS5r5w4U4m7j5w5g4Q6s4rT5m8sQ7xFzS5r5w4U4m7j" crossorigin="anonymous" defer></script>
-  <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
   <script>
     // Configuration
     const CONFIG = {
       apiKey: '40f1982842db35042e8561b13b38d492',
       imageBaseUrl: 'https://image.tmdb.org/t/p/w500',
-      subtitleBaseUrl: '/subtitles/', // Host WebVTT files here
-      videoBaseUrl: 'https://example.com/videos/' // Replace with your video hosting URL
+      servers: ['player.videasy.net', 'vidsrc.cc', 'vidsrc.me', 'vidsrc.to']
     };
 
     // State
@@ -405,7 +470,8 @@
       favorites: JSON.parse(localStorage.getItem('favorites') || '[]'),
       recentlyViewed: JSON.parse(localStorage.getItem('recently_viewed') || '[]'),
       isLoading: false,
-      reachedEnd: false
+      reachedEnd: false,
+      lastModalItem: null
     };
 
     // Utility Functions
@@ -456,7 +522,7 @@
         state.totalPages = data.total_pages || 1;
         return data.results || [];
       } catch (e) {
-        showError('Failed to load content.');
+        showError('Failed to load content. Please check your API key or connection.');
         return [];
       }
     };
@@ -475,53 +541,96 @@
             <button class="play-overlay"><i class="fas fa-play"></i></button>
             <button class="favorite-btn${state.favorites.includes(item.id) ? ' favorited' : ''}" data-id="${item.id}"><i class="fas fa-heart"></i></button>
           </div>
-          <div class="text-center mt-2">
-            <small>${item.title || item.name}</small>
+          <div class="movie-title">${item.title || item.name}</div>
+        </div>
+      `).join('');
+    };
+
+    const renderCarousel = async () => {
+      const items = await fetchItems('movies', 1);
+      const carouselInner = document.getElementById('carousel-inner');
+      carouselInner.innerHTML = items.slice(0, 3).map((item, index) => `
+        <div class="carousel-item${index === 0 ? ' active' : ''}">
+          <img src="${item.backdrop_path ? 'https://image.tmdb.org/t/p/original' + item.backdrop_path : '/img/no-poster.png'}" class="d-block w-100" alt="${item.title || item.name}">
+          <div class="carousel-caption d-none d-md-block">
+            <h5 class="carousel-title">${item.title || item.name}</h5>
+            <p>${item.overview ? item.overview.slice(0, 100) + '...' : ''}</p>
           </div>
         </div>
       `).join('');
     };
 
     // Modal Handling
+    const changeServer = (server, quality, auto = false) => {
+      if (!state.lastModalItem) return;
+      const iframe = document.getElementById('modal-video');
+      const itemId = state.lastModalItem.id;
+      const type = state.lastModalItem.media_type || 'movie';
+      let embedURL;
+
+      if (server === 'player.videasy.net') {
+        embedURL = `https://player.videasy.net/${type}/${itemId}?autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
+      } else if (server === 'vidsrc.cc') {
+        embedURL = `https://vidsrc.cc/api/embed/${type}/${itemId}?autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
+      } else if (server === 'vidsrc.me') {
+        embedURL = `https://vidsrc.net/embed/${type}/?tmdb=${itemId}&autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
+      } else if (server === 'vidsrc.to') {
+        embedURL = `https://vidsrc.to/embed/${type}/${itemId}?autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
+      }
+
+      const tryServer = (index = CONFIG.servers.indexOf(server)) => {
+        if (index >= CONFIG.servers.length) {
+          showError('All servers unavailable. Try again later.', document.querySelector('.modal-details'));
+          return;
+        }
+        const currentServer = CONFIG.servers[index];
+        document.getElementById('server-select').value = currentServer;
+        iframe.src = embedURL;
+
+        const timeout = setTimeout(() => tryServer(index + 1), 5000);
+        iframe.onload = () => {
+          clearTimeout(timeout);
+          try {
+            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+          } catch (e) {
+            tryServer(index + 1);
+          }
+        };
+        iframe.onerror = () => {
+          clearTimeout(timeout);
+          tryServer(index + 1);
+        };
+      };
+
+      iframe.src = '';
+      if (auto) {
+        tryServer();
+      } else {
+        iframe.src = embedURL;
+        iframe.onload = () => {
+          try {
+            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+          } catch (e) {
+            showError('Playback failed. Try another server.', document.querySelector('.modal-details'));
+          }
+        };
+      }
+    };
+
     const showModal = async (item) => {
       addRecentlyViewed(item);
-      const modal = new bootstrap.Modal(document.getElementById('modal'));
+      state.lastModalItem = item;
+      document.getElementById('modal').style.display = 'flex';
       document.getElementById('modal-title').textContent = item.title || item.name || 'Untitled';
       document.getElementById('modal-description').textContent = item.overview || 'No description available.';
       document.getElementById('modal-poster').src = item.poster_path ? CONFIG.imageBaseUrl + item.poster_path : '/img/no-poster.png';
       document.getElementById('modal-genres').innerHTML = (item.genres || []).map(g => `<span class="badge">${g.name}</span>`).join('');
 
-      const video = videojs('modal-video');
-      video.src({ type: 'video/mp4', src: `${CONFIG.videoBaseUrl}${item.id}.mp4` }); // Replace with actual video URL
-      video.poster(item.poster_path ? CONFIG.imageBaseUrl + item.poster_path : '');
-
-      const subtitleSrc = `${CONFIG.subtitleBaseUrl}subtitles_${item.media_type === 'tv' ? 'tv' : 'movie'}_${item.id}.vtt`;
-      fetch(subtitleSrc, { method: 'HEAD' })
-        .then(response => response.ok ? subtitleSrc : '')
-        .catch(() => '')
-        .then(src => {
-          video.addRemoteTextTrack({
-            kind: 'subtitles',
-            label: 'English',
-            srclang: 'en',
-            src: src || ''
-          }, true);
-        });
-
-      document.getElementById('quality-select').value = '720p';
-      video.qualitySelector = { default: '720p' };
-
-      document.getElementById('subtitle-toggle').addEventListener('change', () => {
-        video.textTracks()[0].mode = document.getElementById('subtitle-toggle').checked ? 'showing' : 'hidden';
-      });
-
-      document.getElementById('fullscreen-btn').onclick = () => {
-        if (video.isFullscreen()) video.exitFullscreen();
-        else video.requestFullscreen();
-      };
-
-      video.on('error', () => showError('Video playback failed.'));
-      modal.show();
+      const serverSelect = document.getElementById('server-select');
+      const qualitySelect = document.getElementById('quality-select');
+      serverSelect.value = CONFIG.servers[0];
+      qualitySelect.value = 'auto';
+      changeServer(serverSelect.value, qualitySelect.value, true);
     };
 
     // Infinite Scroll
@@ -548,6 +657,7 @@
     // Event Listeners
     document.addEventListener('DOMContentLoaded', () => {
       const movieList = document.getElementById('movie-list');
+      const modal = document.getElementById('modal');
 
       document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -575,12 +685,40 @@
         }
       });
 
+      modal.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal-close') || e.target === modal) {
+          modal.style.display = 'none';
+          document.getElementById('modal-video').src = '';
+        } else if (e.target.closest('#fullscreen-btn')) {
+          const iframe = document.getElementById('modal-video');
+          if (iframe.requestFullscreen) {
+            iframe.requestFullscreen();
+          } else if (iframe.webkitRequestFullscreen) {
+            iframe.webkitRequestFullscreen();
+          } else if (iframe.msRequestFullscreen) {
+            iframe.msRequestFullscreen();
+          }
+        }
+      });
+
+      document.getElementById('server-select').addEventListener('change', () => {
+        const server = document.getElementById('server-select').value;
+        const quality = document.getElementById('quality-select').value;
+        changeServer(server, quality);
+      });
+
+      document.getElementById('quality-select').addEventListener('change', () => {
+        const server = document.getElementById('server-select').value;
+        const quality = document.getElementById('quality-select').value;
+        changeServer(server, quality);
+      });
+
       document.getElementById('search-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const query = document.getElementById('search-input').value.trim();
         if (query) {
           state.currentMode = 'search';
-          // Implement search logic here (e.g., fetch from TMDB search API)
+          // Placeholder for search implementation
           resetContent();
         }
       });
@@ -592,14 +730,8 @@
         }
       });
 
-      // Initialize Video.js
-      videojs('modal-video', {
-        controls: true,
-        autoplay: false,
-        preload: 'auto'
-      });
-
       // Initial Load
+      renderCarousel();
       resetContent();
     });
   </script>
