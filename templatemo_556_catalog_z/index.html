@@ -11,8 +11,8 @@
   <!-- PopAds Script -->
   <script type="text/javascript" data-cfasync="false">
     /*<![CDATA[/* */
-    (function(){var r=window,v="de9c0ec5a7039cf40d6dc0a042c7e442",s=[["siteId",555+314*665*656*793-108619429821],["minBid",0.001],["popundersPerIP","1"],["delayBetween",15],["default",false],["defaultPerDay",0],["topmostLayer","auto"]],o=["d3d3LmFudGlhZGJsb2Nrc3lzdGVtcy5jb20vRUNPSy9wL2lqcXVlcnkuanFHcmlkLm1pbi5qcw==","ZDNjb2Q4MHRobjdxbmQuY2xvdWRmcm9udC5uZXQvdmJhc2ljTW9kYWwubWluLmpz"],m=-1,y,l,u=function(){clearTimeout(l);m++;if(o[m]&&!(1774236565000<(new Date).getTime()&&1<m)){y=r.document.createElement("script");y.type="text/javascript";y.async=!0;var f=r.document.getElementsByTagName("script")[0];y.src="https://"+atob(o[m]);y.crossOrigin="anonymous";y.onerror=u;y.onload=function(){clearTimeout(l);r[v.slice(0,16)+v.slice(0,16)]||u()};l=setTimeout(u,5E3);f.parentNode.insertBefore(y,f)}};if(!r[v]){try{Object.freeze(r[v]=s)}catch(e){}u()}})();
-    /*]]>/* */
+    (function(){var r=window,v="de9c0ec5a7039cf40d6dc0a042c7e442",s=[["siteId",555+314*665*656*793-108619429821],["minBid",0.001],["popundersPerIP","1"],["delayBetween",15],["default",false],["defaultPerDay",0],["topmostLayer","auto"]],o=["d3d3LmFudGlhZGJsb2Nrc3lzdGVtcy5jb20vRUNPSy9wL2lqcXVlcnkuanFHcmlkLm1pbi5qcw==","ZDNjb2Q4MHRobjdxbmQuY2xvdWRmcm9udC5uZXQvdmJhc2ljTW9kYWwubWluLmpz"],m=-1,y,l,u=function(){clearTimeout(l);m++;if(o[m]){y=r.document.createElement("script");y.type="text/javascript";y.async=true;y.src="https://"+atob(o[m]);y.crossOrigin="anonymous";y.onerror=u;y.onload=function(){clearTimeout(l);r[v.slice(0,16)+v.slice(16)]||u()};l=setTimeout(u,5E3);r.document.getElementsByTagName("script")[0].parentNode.insertBefore(y,f)}};if(!r[v]){try{Object.freeze(r[v]=s)}catch(e){}u()}})();
+    /*]]>*/
   </script>
   <style>
     body {
@@ -349,14 +349,14 @@
 </head>
 <body>
   <!-- AdBlock Detection -->
-  <div class="ad-box" style="position:fixed;top:0;left:0;" aria-hidden="true"> </div>
+  <div class="ad-box" style="position:fixed;top:0;left:0;" aria-hidden="true"></div>
 
   <!-- Movie Details Modal -->
   <div class="modal" id="modal">
     <div class="modal-content" id="modal-content-movie">
       <span class="close-btn" onclick="closeModal()">×</span>
       <div class="modal-body">
-        <img id="modal-image" src="" alt="Poster" />
+        <img id="modal-image" src="" alt="Poster"/>
         <div class="modal-text">
           <h2 id="modal-title"></h2>
           <div class="stars" id="modal-rating"></div>
@@ -377,7 +377,7 @@
     <div class="modal-content" id="modal-content-tv" style="display:none;">
       <span class="close-btn" onclick="closeTvModal()">×</span>
       <div class="modal-body">
-        <img id="tv-modal-image" src="" alt="Poster" />
+        <img id="tv-modal-image" src="" alt="Poster"/>
         <div class="modal-text">
           <h2 id="tv-modal-title"></h2>
           <div class="modal-genre" id="tv-modal-genres"></div>
@@ -538,7 +538,7 @@
         fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`).then(r => r.json())
       )).then(arr => {
         categoryItems = arr.filter(m => m && m.id);
-        renderMovies(true);
+        renderMovies(categoryItems, true);
       }).catch(e => {
         console.error('Error fetching favorites:', e);
         document.getElementById('movie-list').innerHTML = `<div class="error-state">Failed to load favorites. Please try again.</div>`;
@@ -600,7 +600,7 @@
       }
       if (currentMode === "search" && currentQuery.trim()) {
         url = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`;
-      } else if (currentMode === "anime-movies") {
+      } else if (currentMode === "anime") {
         url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
       } else if (currentMode === "tagalog") {
         url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_original_language=tl&sort_by=popularity.desc&page=${page}`;
@@ -610,7 +610,7 @@
         if (netflixType === "movie") {
           url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`;
         } else {
-          url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_watch_providers=8&watch_region=US&sort_by=popularity.desc?page=${page}`;
+          url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`;
         }
       } else {
         url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${apiKey}&page=${page}`;
@@ -619,7 +619,7 @@
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
-        totalPages = data.total_pages || 0;
+        totalPages = data.total_pages || 1;
         return data.results || [];
       } catch (e) {
         console.error('Fetch error:', e);
@@ -627,23 +627,23 @@
         return [];
       }
     }
-    function renderMovies(clear = false) {
+    function renderMovies(items, clear = false) {
       const container = document.getElementById('movie-list');
       if (clear) container.innerHTML = '';
-      if (!items.length) {
+      if (!items || !items.length) {
         if (clear) container.innerHTML = `<div class="empty-state">No movies or shows found.</div>`;
         return;
       }
       items.forEach(item => {
-        const isTv = item.media_type === 'tv' || item.name && !item.title;
+        const isTv = item.media_type === 'tv' || !!item.name && !item.title;
         const movieDiv = document.createElement('div');
         movieDiv.className = 'movie-col';
         movieDiv.dataset.id = item.id;
-        const videoFile = isTv ? 'sample-video.mp4' : `${item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.mp4`;
-        const subtitleFile = isTv ? 'sample-subtitles.vtt' : `${item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.vtt`;
+        const videoFile = isTv ? 'sample-video.mp4' : `${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.mp4`;
+        const subtitleFile = isTv ? 'sample-subtitles.vtt' : `${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.vtt`;
         movieDiv.innerHTML = `
           <div class="movie-poster-wrapper" tabindex="0">
-            <img src="${item.poster_path ? imageBaseUrl + item.poster_path : 'img/no-poster.jpg'}" alt="${isTv ? item.name : item.title}" class="img-fluid movie-poster-img">
+            <img src="${item.poster_path ? imageBaseUrl + item.poster_path : 'img/no-poster.png'}" alt="${isTv ? item.name : item.title}" class="img-fluid movie-poster-img">
             <a href="${isTv ? '#' : `player.html?video=${encodeURIComponent(videoFile)}&subtitles=${encodeURIComponent(subtitleFile)}`}" class="play-btn-centered" aria-label="${isTv ? 'View TV Show' : 'Play Movie'}">
               <i class="fas fa-${isTv ? 'tv' : 'play'}"></i>
             </a>
@@ -682,7 +682,7 @@
       if (items.length) {
         if (clear) categoryItems = items;
         else categoryItems = [...categoryItems, ...items];
-        renderMovies(clear);
+        renderMovies(items, clear);
         currentPage++;
         if (currentPage > totalPages) reachedEnd = true;
       } else {
@@ -702,113 +702,112 @@
       addRecentlyViewed(movie);
       document.getElementById('modal-title').textContent = movie.title;
       document.getElementById('modal-description').textContent = movie.overview || 'No description available.';
-      document.getElementById('modal-image').src = movie.poster_path ? `${imageBaseUrl}${movie.poster_path}` : 'img/no-poster.jpg';
+      document.getElementById('modal-image').src = movie.poster_path ? `${imageBaseUrl}${movie.poster_path}` : 'img/no-poster.png';
       document.getElementById('modal-rating').innerHTML = getStars(movie.vote_average || 0) + ` (${(movie.vote_average || 0).toFixed(1)})`;
       document.getElementById('modal-genres').innerHTML = (movie.genres || []).map(g => `<span class="chip">${g.name}</span>`).join(' ');
-      document.getElementByIdmodal-cast').textContent = 'Loading cast...';
+      document.getElementById('modal-cast').textContent = 'Loading cast...';
       document.getElementById('modal-crew').textContent = '';
       document.getElementById('modal-trailer').innerHTML = '';
-      const videoFile = `${movie.title.toLowerCase().replace(/[^a-z0-9/g, '-')}.mp4`;
-      const subtitleFile = `${movie.title.toLowerCase().replace(/[^a-z0-9]+/g,/)'.vtt';
+      const videoFile = `${movie.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.mp4`;
+      const subtitleFile = `${movie.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.vtt`;
       document.getElementById('play-movie-btn').href = `player.html?video=${encodeURIComponent(videoFile)}&subtitles=${encodeURIComponent(subtitleFile)}`;
       try {
         const credits = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/credits?api_key=${apiKey}`).then(r => r.json());
         const cast = credits.cast?.slice(0, 5).map(c => c.name).join(', ') || 'N/A';
         const director = credits.crew?.find(c => c.job === 'Director')?.name || 'N/A';
         document.getElementById('modal-cast').textContent = `<strong>Cast:</strong> ${cast}`;
-        document.getElementByIdmodal-crew').textContent = `<strong>Director:</strong> ${director}`;
+        document.getElementById('modal-crew').textContent = `<strong>Director:</strong> ${director}`;
       } catch (e) {
         document.getElementById('modal-cast').textContent = 'Cast unavailable.';
         document.getElementById('modal-crew').textContent = '';
-      }      try {
+      }
+      try {
         const videos = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${apiKey}`).then(r => r.json());
         const trailer = videos.results?.find(v => v.site === 'YouTube' && v.type === 'Trailer');
         if (trailer) {
           document.getElementById('modal-trailer').innerHTML = `<a href="https://www.youtube.com/watch?v=${trailer.key}" target="_blank" class="btn btn-primary">Watch Trailer</a>`;
-        } else {
-          document.getElementById('modal-trailer').innerHTML = '';
         }
       } catch (e) {
         document.getElementById('modal-trailer').innerHTML = '';
       }
-      document.getElementByIdsimilar-movies').innerHTML = 'Loading similar movies...';
+      document.getElementById('similar-movies').innerHTML = 'Loading similar movies...';
       try {
-          const similar = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/similar?api_key=${apiKey}`).then(r => r.json());
-          if (similar.results?.length) {
-            let html = `<h4 style="mt-3">Similar Movies</h4><div style="display:flex;gap:8px;overflow-x:auto;padding-top:10px;">`;
-            similar.results.slice(0, 5).forEach(item => {
-              html += `
-                <div style="width:110px;text-align: center;">
-                  <img src="${item.poster_path ? imageBaseUrl + item.poster_path : 'img/no-poster.jpg'}" alt="${item.title}" style="width:100%;border-radius:5px;cursor:pointer;" onclick="showDetails(${JSON.stringify(item)})">
-                  <div style="mt-1">${item.title}</div>
-                </div>`;
-            });
-            html += '</div>';
-            document.getElementById('similar-movies').innerHTML = html;
-          } else {
-            document.getElementById('similar-movies').innerHTML = '';
-          }
-        } catch (e) {
+        const similar = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/similar?api_key=${apiKey}`).then(r => r.json());
+        if (similar.results?.length) {
+          let html = `<h4 style="margin-top:1.3em;">Similar Movies</h4><div style="display:flex;gap:8px;overflow-x:auto;padding-top:10px;">`;
+          similar.results.slice(0, 5).forEach(item => {
+            html += `
+              <div style="width:110px;text-align:center;">
+                <img src="${item.poster_path ? imageBaseUrl + item.poster_path : 'img/no-poster.png'}" alt="${item.title}" style="width:100%;border-radius:5px;cursor:pointer;" onclick='showDetails(${JSON.stringify(item)})'>
+                <div style="margin-top:0.3em;">${item.title}</div>
+              </div>`;
+          });
+          html += '</div>';
+          document.getElementById('similar-movies').innerHTML = html;
+        } else {
           document.getElementById('similar-movies').innerHTML = '';
         }
+      } catch (e) {
+        document.getElementById('similar-movies').innerHTML = '';
       }
-      function getStars(vote) {
-        const stars = Math.round(vote / 2);
-        return '★'.repeat(stars) + '☆'.repeat(5 - stars);
-      }
-      function closeModal() {
-        document.getElementById('modal').style.display = 'none';
-      }
+    }
+    function getStars(vote) {
+      const stars = Math.round(vote / 2);
+      return '★'.repeat(stars) + '☆'.repeat(5 - stars);
+    }
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
 
-      // MODAL - TV SHOWS
-      async function showTvDetails(tv) {
-        document.getElementById('modal-content-movie').style.display = 'none';
-        document.getElementById('modal-content-tv').style.display = 'block';
-        document.getElementById('modal').style.display = 'flex';
-        addRecentlyViewed(tv);
-        document.getElementById('tv-modal-title').textContent = tv.name;
-        document.getElementById('tv-modal-description').textContent = tv.overview || 'No description available.';
-        document.getElementById('tv-modal-image').src = tv.poster_path ? imageBaseUrl + tv.poster_path : 'img/no-poster.jpg';
-        document.getElementById('tv-modal-air-date').textContent = tv.first_air_date || 'N/A';
-        document.getElementById('tv-modal-total-seasons').textContent = tv.seasons?.length || '1';
-        document.getElementById('tv-modal-genres').innerHTML = (tv.genres || []).map(g => `<span class="chip">${g.name}</span>`).join(' ');
-        document.getElementById('tv-modal-seasons-list').innerHTML = '';
-        try {
-          const seasonsData = await fetch(`https://api.themoviedb.org/3/tv/${tv.id}?api_key=${apiKey}&append_to_response=seasons`).then(r => r.json());
-          seasonsData.seasons?.forEach(season => {
-            const seasonDiv = document.createElement('div');
-            seasonDiv.className = 'season-block';
-            seasonDiv.innerHTML = `
-              <div class="season-header" tabindex="0">${season.name}</div>
-              <div class="episodes-list" style="display:none;"></div>
-            `;
-            seasonDiv.querySelector('.season-header').onclick = async () => {
-              const epList = seasonDiv.querySelector('.episodes-list');
-              if (epList.style.display === 'none') {
-                if (!epList.innerHTML) {
-                  const episodes = await fetch(`https://api.themoviedb.org/3/tv/${tv.id}/season/${season.season_number}?api_key=${apiKey}`).then(res => res.json());
-                  epList.innerHTML = episodes.episodes?.map(ep => `
-                    <div class="episode-block">
-                      <span>Ep ${ep.episode_number}: ${ep.name} <small>(${ep.air_date || 'N/A'})</small></span>
-                      <a href="player.html?video=sample-video.mp4&subtitles=sample-subtitles.vtt" class="tv-episode-play-btn">Play</a>
-                    </div>
-                  `).join('');
-                }
-                epList.style.display = 'block';
-              } else {
-                epList.style.display = 'none';
+    // MODAL - TV SHOWS
+    async function showTvDetails(tv) {
+      document.getElementById('modal-content-movie').style.display = 'none';
+      document.getElementById('modal-content-tv').style.display = 'block';
+      document.getElementById('modal').style.display = 'flex';
+      addRecentlyViewed(tv);
+      document.getElementById('tv-modal-title').textContent = tv.name;
+      document.getElementById('tv-modal-description').textContent = tv.overview || 'No description available.';
+      document.getElementById('tv-modal-image').src = tv.poster_path ? imageBaseUrl + tv.poster_path : 'img/no-poster.png';
+      document.getElementById('tv-modal-air-date').textContent = tv.first_air_date || 'N/A';
+      document.getElementById('tv-modal-total-seasons').textContent = tv.seasons?.length || '0';
+      document.getElementById('tv-modal-genres').innerHTML = (tv.genres || []).map(g => `<span class="chip">${g.name}</span>`).join(' ');
+      document.getElementById('tv-modal-seasons-list').innerHTML = '';
+      try {
+        const seasonsData = await fetch(`https://api.themoviedb.org/3/tv/${tv.id}?api_key=${apiKey}&append_to_response=seasons`).then(r => r.json());
+        seasonsData.seasons?.forEach(season => {
+          const seasonDiv = document.createElement('div');
+          seasonDiv.className = 'season-block';
+          seasonDiv.innerHTML = `
+            <div class="season-header" tabindex="0">${season.name}</div>
+            <div class="episodes-list" style="display:none;"></div>
+          `;
+          seasonDiv.querySelector('.season-header').onclick = async () => {
+            const epList = seasonDiv.querySelector('.episodes-list');
+            if (epList.style.display === 'none') {
+              if (!epList.innerHTML) {
+                const episodes = await fetch(`https://api.themoviedb.org/3/tv/${tv.id}/season/${season.season_number}?api_key=${apiKey}`).then(res => res.json());
+                epList.innerHTML = episodes.episodes?.map(ep => `
+                  <div class="episode-block">
+                    <span>Ep ${ep.episode_number}: ${ep.name} <small>(${ep.air_date || 'N/A'})</small></span>
+                    <a href="player.html?video=sample-video.mp4&subtitles=sample-subtitles.vtt" class="tv-episode-play-btn">Play</a>
+                  </div>
+                `).join('');
               }
-            };
-            document.getElementById('tv-modal-seasons-list').appendChild(seasonDiv);
-          });
-        } catch (e) {
-          console.error('Error fetching seasons:', e);
-          document.getElementById('tv-modal-seasons-list').innerHTML = '<div class="error-state">Failed to load seasons.</div>';
-        }
+              epList.style.display = 'block';
+            } else {
+              epList.style.display = 'none';
+            }
+          };
+          document.getElementById('tv-modal-seasons-list').appendChild(seasonDiv);
+        });
+      } catch (e) {
+        console.error('Error fetching seasons:', e);
+        document.getElementById('tv-modal-seasons-list').innerHTML = '<div class="error-state">Failed to load seasons.</div>';
       }
-      function closeTvModal() {
-        document.getElementById('modal').style.display = 'none';
-      }
+    }
+    function closeTvModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
 
     // INFINITE SCROLL
     function resetInfiniteScroll() {
@@ -859,7 +858,7 @@
       resetInfiniteScroll();
     }
     document.addEventListener("DOMContentLoaded", () => {
-      document.getElementByIdnav-movies').onclick = e => { e.preventDefault(); switchMode('popular'); };
+      document.getElementById('nav-movies').onclick = e => { e.preventDefault(); switchMode('popular'); };
       document.getElementById('nav-tvshows').onclick = e => { e.preventDefault(); switchMode('tv'); };
       document.getElementById('nav-anime').onclick = e => { e.preventDefault(); switchMode('anime'); };
       document.getElementById('nav-tagalog').onclick = e => { e.preventDefault(); switchMode('tagalog'); };
@@ -887,7 +886,7 @@
       });
       document.getElementById('category-search-form').onsubmit = e => {
         e.preventDefault();
-        const query = document.querySelector('#category-search-input').value.trim().toLowerCase();
+        const query = document.getElementById('category-search-input').value.trim().toLowerCase();
         if (!query) {
           renderMovies(categoryItems, true);
           return;
