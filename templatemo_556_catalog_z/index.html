@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=DM+Serif+Display&display=swap">
   <!-- Bootstrap and Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnS0PnZ2tH7AZ1dU5N1wJLYW8zQ2F7n5vZ7g0v8Gq7pA2oD5X8v8zX0j6tZ9kHIO6Y8eR7Do1h8x3z9l8lvJgg==" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw==" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8U0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw==" crossorigin="anonymous">
   <style>
     :root {
       --primary-bg: #1a1e24;
@@ -27,11 +27,15 @@
 
     * { box-sizing: border-box; }
 
-    body {
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow-x: hidden;
       background: var(--primary-bg);
       color: var(--text-color);
       font-family: 'Montserrat', Arial, sans-serif;
-      margin: 0;
       line-height: 1.6;
     }
 
@@ -43,25 +47,29 @@
 
     /* Navbar */
     .navbar {
-      padding: 0.75rem 0;
+      padding: 0.75rem 1rem;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+      width: 100%;
     }
 
     .navbar-brand {
       font-family: 'DM Serif Display', serif;
-      font-size: 2.2rem;
+      font-size: clamp(1.8rem, 5vw, 2.2rem);
       color: var(--accent-color);
       text-shadow: 0 2px 8px var(--accent-hover);
     }
 
     .nav-tabs {
       border-bottom: 1px solid var(--border-color);
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      white-space: nowrap;
     }
 
     .nav-link {
       color: var(--text-color) !important;
-      font-size: 1.1rem;
-      padding: 0.75rem 1.5rem;
+      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+      padding: 0.5rem 1rem;
       transition: color 0.2s, background 0.2s;
     }
 
@@ -74,12 +82,14 @@
     /* Search Form */
     .search-form {
       max-width: 400px;
+      width: 100%;
     }
 
     .search-form input {
       background: var(--secondary-bg);
       border: 1px solid var(--border-color);
       color: var(--text-color);
+      font-size: clamp(0.85rem, 2vw, 1rem);
     }
 
     .search-form button {
@@ -95,10 +105,13 @@
     /* Carousel */
     .carousel {
       margin-bottom: 2rem;
+      width: 100%;
     }
 
     .carousel-item img {
-      height: 450px;
+      width: 100%;
+      height: auto;
+      max-height: 500px;
       object-fit: cover;
       filter: brightness(60%);
       cursor: pointer;
@@ -108,20 +121,22 @@
       background: rgba(0, 0, 0, 0.7);
       padding: 1rem;
       border-radius: 8px;
-      bottom: 20%;
+      bottom: 15%;
       cursor: pointer;
+      font-size: clamp(0.9rem, 2vw, 1rem);
     }
 
     .carousel-title {
-      font-size: 1.8rem;
+      font-size: clamp(1.2rem, 3vw, 1.8rem);
       margin-bottom: 0.5rem;
     }
 
     /* Movie Grid */
     .movie-col {
-      padding: 0.75rem;
+      padding: 0.5rem;
       cursor: pointer;
       transition: transform 0.2s;
+      width: 100%;
     }
 
     .movie-col:hover {
@@ -133,12 +148,15 @@
       overflow: hidden;
       border-radius: 10px;
       box-shadow: var(--shadow-light);
+      width: 100%;
+      aspect-ratio: 2 / 3; /* TMDB poster aspect ratio */
     }
 
     .movie-poster img {
       width: 100%;
-      height: 300px;
-      object-fit: cover;
+      height: 100%;
+      object-fit: contain; /* Ensure full poster is visible */
+      object-position: center;
       transition: transform 0.3s;
     }
 
@@ -190,7 +208,7 @@
     }
 
     .movie-title {
-      font-size: 0.95rem;
+      font-size: clamp(0.85rem, 2vw, 0.95rem);
       margin-top: 0.5rem;
       text-align: center;
       display: block;
@@ -231,7 +249,7 @@
     }
 
     .modal-title {
-      font-size: 1.6rem;
+      font-size: clamp(1.2rem, 3vw, 1.6rem);
       margin: 0;
     }
 
@@ -256,9 +274,12 @@
     }
 
     .modal-poster {
+      width: 100%;
       max-width: 200px;
       border-radius: 8px;
       box-shadow: var(--shadow-light);
+      aspect-ratio: 2 / 3;
+      object-fit: contain;
     }
 
     .modal-details {
@@ -267,7 +288,7 @@
     }
 
     .modal-details p {
-      font-size: 1rem;
+      font-size: clamp(0.9rem, 2vw, 1rem);
       margin-bottom: 1rem;
     }
 
@@ -277,7 +298,7 @@
       margin-right: 0.5rem;
       margin-bottom: 0.5rem;
       padding: 0.5rem 1rem;
-      font-size: 0.9rem;
+      font-size: clamp(0.8rem, 1.5vw, 0.9rem);
     }
 
     .video-container {
@@ -309,10 +330,12 @@
       padding: 0.5rem;
       border-radius: 4px;
       cursor: pointer;
+      font-size: clamp(0.85rem, 2vw, 1rem);
     }
 
     .video-controls label {
       margin-right: 0.5rem;
+      font-size: clamp(0.85rem, 2vw, 1rem);
     }
 
     .fullscreen-btn {
@@ -347,7 +370,7 @@
 
     .season-header {
       font-weight: bold;
-      font-size: 1.1rem;
+      font-size: clamp(0.9rem, 2vw, 1.1rem);
       color: var(--accent-hover);
       cursor: pointer;
       margin-bottom: 0.5rem;
@@ -359,7 +382,7 @@
       gap: 0.5rem;
       padding: 0.5rem 0 0.5rem 1rem;
       border-left: 2px solid var(--accent-color);
-      font-size: 0.95rem;
+      font-size: clamp(0.85rem, 1.5vw, 0.95rem);
     }
 
     .tv-episode-play-btn, .tv-episode-next-btn {
@@ -368,7 +391,7 @@
       border: none;
       border-radius: 4px;
       padding: 0.3rem 0.8rem;
-      font-size: 0.9rem;
+      font-size: clamp(0.8rem, 1.5vw, 0.9rem);
       cursor: pointer;
       transition: background 0.2s;
     }
@@ -381,7 +404,7 @@
     .footer {
       padding: 2rem 0;
       text-align: center;
-      font-size: 0.9rem;
+      font-size: clamp(0.8rem, 2vw, 0.9rem);
       border-top: 1px solid var(--border-color);
     }
 
@@ -395,10 +418,18 @@
     }
 
     /* Responsive Grid */
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      margin: 0 -0.5rem;
+    }
+
     .row-cols-1 > * { flex: 0 0 100%; max-width: 100%; }
-    @media (min-width: 576px) { .row-cols-md-4 > * { flex: 0 0 25%; max-width: 25%; } }
-    @media (min-width: 768px) { .row-cols-md-4 > * { flex: 0 0 20%; max-width: 20%; } }
-    @media (min-width: 992px) { .row-cols-md-4 > * { flex: 0 0 16.666%; max-width: 16.666%; } }
+    @media (min-width: 576px) { .row-cols-md-4 > * { flex: 0 0 50%; max-width: 50%; } }
+    @media (min-width: 768px) { .row-cols-md-4 > * { flex: 0 0 33.333%; max-width: 33.333%; } }
+    @media (min-width: 992px) { .row-cols-md-4 > * { flex: 0 0 25%; max-width: 25%; } }
+    @media (min-width: 1200px) { .row-cols-md-4 > * { flex: 0 0 20%; max-width: 20%; } }
+    @media (min-width: 1400px) { .row-cols-md-4 > * { flex: 0 0 16.666%; max-width: 16.666%; } }
   </style>
 </head>
 <body>
