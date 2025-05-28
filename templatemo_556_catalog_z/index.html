@@ -101,6 +101,7 @@
       height: 450px;
       object-fit: cover;
       filter: brightness(60%);
+      cursor: pointer;
     }
 
     .carousel-caption {
@@ -108,6 +109,7 @@
       padding: 1rem;
       border-radius: 8px;
       bottom: 20%;
+      cursor: pointer;
     }
 
     .carousel-title {
@@ -284,7 +286,7 @@
       margin-top: 1.5rem;
     }
 
-    #modal-video {
+    #modal-video, #tv-episode-player {
       width: 100%;
       aspect-ratio: 16/9;
       border-radius: 8px;
@@ -330,6 +332,48 @@
     }
 
     .fullscreen-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    /* TV Modal Specific */
+    #tv-modal-seasons-list {
+      margin-top: 1rem;
+      background: var(--secondary-bg);
+      border-radius: 8px;
+      padding: 1rem;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .season-header {
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: var(--accent-hover);
+      cursor: pointer;
+      margin-bottom: 0.5rem;
+    }
+
+    .episode-block {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0 0.5rem 1rem;
+      border-left: 2px solid var(--accent-color);
+      font-size: 0.95rem;
+    }
+
+    .tv-episode-play-btn, .tv-episode-next-btn {
+      background: var(--accent-color);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 0.3rem 0.8rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .tv-episode-play-btn:hover, .tv-episode-next-btn:hover {
       background: var(--accent-hover);
     }
 
@@ -407,7 +451,8 @@
   </div>
 
   <div class="modal" id="modal" tabindex="-1">
-    <div class="modal-content">
+    <!-- Movie Modal -->
+    <div class="modal-content" id="modal-content-movie">
       <div class="modal-header">
         <h5 class="modal-title" id="modal-title"></h5>
         <button type="button" class="modal-close" data-bs-dismiss="modal" aria-label="Close">×</button>
@@ -444,6 +489,30 @@
         </div>
       </div>
     </div>
+    <!-- TV Modal -->
+    <div class="modal-content" id="modal-content-tv" style="display: none;">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tv-modal-title"></h5>
+        <button type="button" class="modal-close" data-bs-dismiss="modal" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <img id="tv-modal-poster" src="" alt="TV show poster" class="modal-poster">
+        <div class="modal-details">
+          <p id="tv-modal-description"></p>
+          <div id="tv-modal-genres" class="modal-genres"></div>
+          <div><strong>First Air Date:</strong> <span id="tv-modal-air-date"></span></div>
+          <div><strong>Seasons:</strong> <span id="tv-modal-total-seasons"></span></div>
+          <div id="tv-modal-seasons-list"></div>
+          <div class="video-container">
+            <iframe id="tv-episode-player" allowfullscreen style="display: none;"></iframe>
+            <button class="fullscreen-btn" id="tv-fullscreen-btn"><i class="fas fa-expand"></i></button>
+          </div>
+          <div style="display: flex; justify-content: center; margin-top: 1rem;">
+            <button class="tv-episode-next-btn" id="tv-episode-next-btn" style="display: none;">Next Episode »</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <footer class="footer mt-4">
@@ -471,7 +540,8 @@
       recentlyViewed: JSON.parse(localStorage.getItem('recently_viewed') || '[]'),
       isLoading: false,
       reachedEnd: false,
-      lastModalItem: null
+      lastModalItem: null,
+      tvModalData: { tvId: null, season: null, episode: null, seasons: [] }
     };
 
     // Utility Functions
@@ -535,7 +605,7 @@
         return;
       }
       container.innerHTML += items.map(item => `
-        <div class="col movie-col" data-id="${item.id}" data-type="${item.media_type || 'movie'}">
+        <div class="col movie-col" data-id="${item.id}" data-type="${item.media_type || (state.currentMode === 'tvshows' ? 'tv' : 'movie')}">
           <div class="movie-poster position-relative">
             <img src="${item.poster_path ? CONFIG.imageBaseUrl + item.poster_path : '/img/no-poster.png'}" alt="${item.title || item.name}" class="img-fluid">
             <button class="play-overlay"><i class="fas fa-play"></i></button>
@@ -548,9 +618,10 @@
 
     const renderCarousel = async () => {
       const items = await fetchItems('movies', 1);
+      state.carouselItems = items.slice(0, 3); // Store for click handling
       const carouselInner = document.getElementById('carousel-inner');
-      carouselInner.innerHTML = items.slice(0, 3).map((item, index) => `
-        <div class="carousel-item${index === 0 ? ' active' : ''}">
+      carouselInner.innerHTML = state.carouselItems.map((item, index) => `
+        <div class="carousel-item${index === 0 ? ' active' : ''}" data-id="${item.id}">
           <img src="${item.backdrop_path ? 'https://image.tmdb.org/t/p/original' + item.backdrop_path : '/img/no-poster.png'}" class="d-block w-100" alt="${item.title || item.name}">
           <div class="carousel-caption d-none d-md-block">
             <h5 class="carousel-title">${item.title || item.name}</h5>
@@ -561,21 +632,21 @@
     };
 
     // Modal Handling
-    const changeServer = (server, quality, auto = false) => {
-      if (!state.lastModalItem) return;
-      const iframe = document.getElementById('modal-video');
-      const itemId = state.lastModalItem.id;
-      const type = state.lastModalItem.media_type || 'movie';
+    const changeServer = (server, quality, auto = false, isTv = false, season = null, episode = null) => {
+      if (!state.lastModalItem && !isTv) return;
+      const iframe = document.getElementById(isTv ? 'tv-episode-player' : 'modal-video');
+      const itemId = isTv ? state.tvModalData.tvId : state.lastModalItem.id;
+      const type = isTv ? 'tv' : (state.lastModalItem.media_type || 'movie');
       let embedURL;
 
       if (server === 'player.videasy.net') {
-        embedURL = `https://player.videasy.net/${type}/${itemId}?autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
+        embedURL = `https://player.videasy.net/${type}/${itemId}${isTv ? `/${season}/${episode}` : ''}?autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
       } else if (server === 'vidsrc.cc') {
-        embedURL = `https://vidsrc.cc/api/embed/${type}/${itemId}?autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
+        embedURL = `https://vidsrc.cc/api/embed/${type}/${itemId}${isTv ? `/${season}/${episode}` : ''}?autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
       } else if (server === 'vidsrc.me') {
-        embedURL = `https://vidsrc.net/embed/${type}/?tmdb=${itemId}&autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
+        embedURL = `https://vidsrc.net/embed/${type}/?tmdb=${itemId}${isTv ? `&season=${season}&episode=${episode}` : ''}&autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
       } else if (server === 'vidsrc.to') {
-        embedURL = `https://vidsrc.to/embed/${type}/${itemId}?autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
+        embedURL = `https://vidsrc.to/embed/${type}/${itemId}${isTv ? `/${season}/${episode}` : ''}?autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
       }
 
       const tryServer = (index = CONFIG.servers.indexOf(server)) => {
@@ -617,11 +688,13 @@
       }
     };
 
-    const showModal = async (item) => {
+    const showMovieModal = async (item) => {
       addRecentlyViewed(item);
       state.lastModalItem = item;
+      document.getElementById('modal-content-movie').style.display = 'block';
+      document.getElementById('modal-content-tv').style.display = 'none';
       document.getElementById('modal').style.display = 'flex';
-      document.getElementById('modal-title').textContent = item.title || item.name || 'Untitled';
+      document.getElementById('modal-title').textContent = item.title || 'Untitled';
       document.getElementById('modal-description').textContent = item.overview || 'No description available.';
       document.getElementById('modal-poster').src = item.poster_path ? CONFIG.imageBaseUrl + item.poster_path : '/img/no-poster.png';
       document.getElementById('modal-genres').innerHTML = (item.genres || []).map(g => `<span class="badge">${g.name}</span>`).join('');
@@ -631,6 +704,77 @@
       serverSelect.value = CONFIG.servers[0];
       qualitySelect.value = 'auto';
       changeServer(serverSelect.value, qualitySelect.value, true);
+    };
+
+    const showTvModal = async (tv) => {
+      addRecentlyViewed(tv);
+      document.getElementById('modal-content-movie').style.display = 'none';
+      document.getElementById('modal-content-tv').style.display = 'block';
+      document.getElementById('modal').style.display = 'flex';
+      try {
+        const tvInfo = await fetch(`https://api.themoviedb.org/3/tv/${tv.id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+        state.tvModalData = { tvId: tvInfo.id, season: null, episode: null, seasons: tvInfo.seasons };
+        document.getElementById('tv-modal-title').textContent = tvInfo.name || 'Untitled';
+        document.getElementById('tv-modal-poster').src = tvInfo.poster_path ? CONFIG.imageBaseUrl + tvInfo.poster_path : '/img/no-poster.png';
+        document.getElementById('tv-modal-description').textContent = tvInfo.overview || 'No description available.';
+        document.getElementById('tv-modal-air-date').textContent = tvInfo.first_air_date || 'N/A';
+        document.getElementById('tv-modal-total-seasons').textContent = tvInfo.number_of_seasons || 'N/A';
+        document.getElementById('tv-modal-genres').innerHTML = (tvInfo.genres || []).map(g => `<span class="badge">${g.name}</span>`).join('');
+        document.getElementById('tv-modal-seasons-list').innerHTML = tvInfo.seasons.map(season => `
+          <div class="season-block">
+            <div class="season-header" tabindex="0" aria-label="Toggle ${season.name} episodes">${season.name} (${season.episode_count} eps)</div>
+            <div class="episodes-list" style="display:none;"></div>
+          </div>
+        `).join('');
+        document.getElementById('tv-episode-player').style.display = 'none';
+        document.getElementById('tv-episode-next-btn').style.display = 'none';
+      } catch (e) {
+        showError('Error loading TV details.', document.getElementById('modal-content-tv'));
+      }
+    };
+
+    const playTvEpisode = (tvId, seasonNum, episodeNum) => {
+      const iframe = document.getElementById('tv-episode-player');
+      iframe.style.display = 'block';
+      const embedURL = `https://player.videasy.net/tv/${tvId}/${seasonNum}/${episodeNum}?autoplay=1`;
+      iframe.src = embedURL;
+
+      setTimeout(() => iframe.scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+        } catch (e) {
+          showError('Auto-play blocked. Try another server.', document.getElementById('modal-content-tv'));
+        }
+      };
+
+      state.tvModalData.season = parseInt(seasonNum);
+      state.tvModalData.episode = parseInt(episodeNum);
+
+      const nextBtn = document.getElementById('tv-episode-next-btn');
+      const next = getNextEpisode(state.tvModalData.season, state.tvModalData.episode);
+      if (next) {
+        nextBtn.style.display = 'block';
+        nextBtn.onclick = () => playTvEpisode(tvId, next.season, next.episode);
+      } else {
+        nextBtn.style.display = 'none';
+      }
+    };
+
+    const getNextEpisode = (season, episode) => {
+      const sidx = state.tvModalData.seasons.findIndex(s => s.season_number === season);
+      if (sidx === -1) return null;
+      const currSeason = state.tvModalData.seasons[sidx];
+      if (episode < currSeason.episode_count) {
+        return { season: currSeason.season_number, episode: episode + 1 };
+      }
+      if (sidx + 1 < state.tvModalData.seasons.length) {
+        const nextSeason = state.tvModalData.seasons[sidx + 1];
+        if (nextSeason.episode_count > 0) {
+          return { season: nextSeason.season_number, episode: 1 };
+        }
+      }
+      return null;
     };
 
     // Infinite Scroll
@@ -658,6 +802,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       const movieList = document.getElementById('movie-list');
       const modal = document.getElementById('modal');
+      const carouselInner = document.getElementById('carousel-inner');
 
       document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -673,22 +818,41 @@
         const col = e.target.closest('.movie-col');
         if (!col) return;
         const id = col.dataset.id;
+        const type = col.dataset.type;
         if (e.target.classList.contains('favorite-btn')) {
           toggleFavorite(parseInt(id));
         } else {
           try {
-            const item = await fetch(`https://api.themoviedb.org/3/${col.dataset.type}/${id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
-            showModal(item);
+            const item = await fetch(`https://api.themoviedb.org/3/${type}/${id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+            type === 'tv' ? showTvModal(item) : showMovieModal(item);
           } catch (e) {
             showError('Error loading item.');
           }
         }
       });
 
-      modal.addEventListener('click', (e) => {
+      carouselInner.addEventListener('click', async (e) => {
+        const itemEl = e.target.closest('.carousel-item');
+        if (!itemEl) return;
+        const id = itemEl.dataset.id;
+        const item = state.carouselItems.find(i => i.id == id);
+        if (item) {
+          try {
+            const fullItem = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+            showMovieModal(fullItem);
+          } catch (e) {
+            showError('Error loading carousel item.');
+          }
+        }
+      });
+
+      modal.addEventListener('click', async (e) => {
         if (e.target.classList.contains('modal-close') || e.target === modal) {
           modal.style.display = 'none';
           document.getElementById('modal-video').src = '';
+          document.getElementById('tv-episode-player').style.display = 'none';
+          document.getElementById('tv-episode-player').src = '';
+          document.getElementById('tv-episode-next-btn').style.display = 'none';
         } else if (e.target.closest('#fullscreen-btn')) {
           const iframe = document.getElementById('modal-video');
           if (iframe.requestFullscreen) {
@@ -698,6 +862,40 @@
           } else if (iframe.msRequestFullscreen) {
             iframe.msRequestFullscreen();
           }
+        } else if (e.target.closest('#tv-fullscreen-btn')) {
+          const iframe = document.getElementById('tv-episode-player');
+          if (iframe.requestFullscreen) {
+            iframe.requestFullscreen();
+          } else if (iframe.webkitRequestFullscreen) {
+            iframe.webkitRequestFullscreen();
+          } else if (iframe.msRequestFullscreen) {
+            iframe.msRequestFullscreen();
+          }
+        } else if (e.target.closest('.season-header')) {
+          const seasonBlock = e.target.closest('.season-block');
+          const epList = seasonBlock.querySelector('.episodes-list');
+          const seasonNum = state.tvModalData.seasons.find(s => s.name === e.target.textContent.split(' (')[0])?.season_number;
+          if (epList.style.display === 'none') {
+            if (!epList.innerHTML) {
+              try {
+                const data = await fetch(`https://api.themoviedb.org/3/tv/${state.tvModalData.tvId}/season/${seasonNum}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+                epList.innerHTML = (data.episodes || []).map(ep => `
+                  <div class="episode-block">
+                    <span>Ep ${ep.episode_number}: ${ep.name || '(Untitled)'} <small>${ep.air_date || ''}</small></span>
+                    <button class="tv-episode-play-btn" data-tv-id="${state.tvModalData.tvId}" data-season="${seasonNum}" data-episode="${ep.episode_number}">Play</button>
+                  </div>
+                `).join('');
+              } catch (e) {
+                showError('Error loading episodes.', document.getElementById('modal-content-tv'));
+              }
+            }
+            epList.style.display = 'block';
+          } else {
+            epList.style.display = 'none';
+          }
+        } else if (e.target.closest('.tv-episode-play-btn')) {
+          const { tvId, season, episode } = e.target.dataset;
+          playTvEpisode(tvId, season, episode);
         }
       });
 
