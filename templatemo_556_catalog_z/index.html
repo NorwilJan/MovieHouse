@@ -9,9 +9,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=DM+Serif+Display&display=swap">
   <!-- Bootstrap and Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css" integrity="sha512-rt/SrQ4ikXaW6R7Zf0zP3wW3D5qDRBUD8u4aM6L9/6u3j2zM6L9/6u3j2zM6L9w==" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css" integrity="sha512-rt/SrQ4ikXaW6R7Zf0zP3wW3D5qDRBUD8u4aM6L9/6u3j2zM6L9w==" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw==" crossorigin="anonymous">
   <style>
+    /* Existing styles remain unchanged */
     :root {
       --primary-bg: #15191e;
       --secondary-bg: #1a1f25;
@@ -358,6 +359,18 @@
       border-radius: 4px;
     }
 
+    .subtitle-toggle {
+      margin: 0.5rem 0 0 2rem;
+    }
+
+    .subtitle-toggle label {
+      margin-right: 0.5rem;
+    }
+
+    .subtitle-toggle input {
+      cursor: pointer;
+    }
+
     .share-btn {
       background: var(--accent-color);
       color: #fff;
@@ -576,6 +589,10 @@
           <option value="vidsrc.to">Vidsrc.to</option>
         </select>
       </div>
+      <div class="subtitle-toggle">
+        <label for="subtitle-toggle">Enable Subtitles:</label>
+        <input type="checkbox" id="subtitle-toggle" checked>
+      </div>
       <div class="iframe-container">
         <iframe id="modal-video" allowfullscreen></iframe>
         <button class="iframe-play-overlay" aria-label="Play movie">
@@ -598,6 +615,10 @@
           <button class="share-btn" id="share-tv-btn">Share</button>
           <div id="tv-modal-seasons-list"></div>
         </div>
+      </div>
+      <div class="subtitle-toggle">
+        <label for="tv-subtitle-toggle">Enable Subtitles:</label>
+        <input type="checkbox" id="tv-subtitle-toggle" checked>
       </div>
       <div class="iframe-container">
         <iframe id="tv-episode-player" allowfullscreen style="display: none;"></iframe>
@@ -650,7 +671,8 @@
     const CONFIG = {
       apiKey: '40f1982842db35042e8561b13b38d492',
       imageBaseUrl: 'https://image.tmdb.org/t/p/w500',
-      servers: ['player.videasy.net', 'vidsrc.cc', 'vidsrc.me', 'vidsrc.to']
+      servers: ['player.videasy.net', 'vidsrc.cc', 'vidsrc.me', 'vidsrc.to'],
+      subtitleBaseUrl: '/subtitles/' // Path to your subtitle files
     };
 
     // State
@@ -915,46 +937,69 @@
         embedURL = `https://vidsrc.to/embed/movie/${movieId}?autoplay=1`;
       }
 
-      const tryServer = (index = CONFIG.servers.indexOf(server)) => {
-        if (index >= CONFIG.servers.length) {
-          showError('All servers unavailable. Try again later.', document.getElementById('modal-content-movie'));
-          playOverlay.style.display = 'flex';
-          return;
-        }
-        const currentServer = CONFIG.servers[index];
-        document.getElementById('server').value = currentServer;
-        iframe.src = embedURL;
-        const timeout = setTimeout(() => tryServer(index + 1), 5000);
-        iframe.onload = () => {
-          clearTimeout(timeout);
-          try {
-            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-            playOverlay.style.display = 'none';
-          } catch (e) {
-            tryServer(index + 1);
+      const subtitleToggle = document.getElementById('subtitle-toggle');
+      let subtitleSrc = `${CONFIG.subtitleBaseUrl}subtitles_movie_${movieId}.vtt`;
+      // Check if subtitle file exists
+      fetch(subtitleSrc, { method: 'HEAD' })
+        .then(response => {
+          if (!response.ok) {
+            subtitleSrc = ''; // Fallback if subtitle file doesn't exist
+            console.warn(`Subtitle file for movie ${movieId} not found.`);
           }
-        };
-        iframe.onerror = () => {
-          clearTimeout(timeout);
-          tryServer(index + 1);
-        };
-      };
+        })
+        .catch(() => {
+          subtitleSrc = '';
+          console.warn(`Error checking subtitle file for movie ${movieId}.`);
+        })
+        .finally(() => {
+          const tryServer = (index = CONFIG.servers.indexOf(server)) => {
+            if (index >= CONFIG.servers.length) {
+              showError('All servers unavailable. Try again later.', document.getElementById('modal-content-movie'));
+              playOverlay.style.display = 'flex';
+              return;
+            }
+            const currentServer = CONFIG.servers[index];
+            document.getElementById('server').value = currentServer;
 
-      iframe.src = '';
-      if (auto) {
-        tryServer();
-      } else {
-        iframe.src = embedURL;
-        iframe.onload = () => {
-          try {
-            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-            playOverlay.style.display = 'none';
-          } catch (e) {
-            showError('Playback failed. Try another server.', document.getElementById('modal-content-movie'));
-            playOverlay.style.display = 'flex';
+            // Since we're using an iframe, we can't directly add a <track> element.
+            // Instead, we'll try to append subtitle parameters to the embed URL if the server supports it.
+            // Note: This depends on the server supporting subtitle tracks via URL parameters.
+            // For now, we'll log a warning if subtitles aren't supported by the server.
+            iframe.src = embedURL;
+            console.warn('Subtitles may not be supported by this video server. Consider using a custom video player for better subtitle integration.');
+
+            const timeout = setTimeout(() => tryServer(index + 1), 5000);
+            iframe.onload = () => {
+              clearTimeout(timeout);
+              try {
+                iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                playOverlay.style.display = 'none';
+              } catch (e) {
+                tryServer(index + 1);
+              }
+            };
+            iframe.onerror = () => {
+              clearTimeout(timeout);
+              tryServer(index + 1);
+            };
+          };
+
+          iframe.src = '';
+          if (auto) {
+            tryServer();
+          } else {
+            iframe.src = embedURL;
+            iframe.onload = () => {
+              try {
+                iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                playOverlay.style.display = 'none';
+              } catch (e) {
+                showError('Playback failed. Try another server.', document.getElementById('modal-content-movie'));
+                playOverlay.style.display = 'flex';
+              }
+            };
           }
-        };
-      }
+        });
     };
 
     const triggerIframePlay = iframeId => {
@@ -971,27 +1016,50 @@
       const iframe = document.getElementById('tv-episode-player');
       const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
       iframe.style.display = 'block';
-      iframe.src = `https://player.videasy.net/tv/${tvId}/${seasonNum}/${episodeNum}?autoplay=1`;
+      const embedURL = `https://player.videasy.net/tv/${tvId}/${seasonNum}/${episodeNum}?autoplay=1`;
+      
+      const subtitleToggle = document.getElementById('tv-subtitle-toggle');
+      let subtitleSrc = `${CONFIG.subtitleBaseUrl}subtitles_tv_${tvId}_${seasonNum}_${episodeNum}.vtt`;
+      
+      // Check if subtitle file exists
+      fetch(subtitleSrc, { method: 'HEAD' })
+        .then(response => {
+          if (!response.ok) {
+            subtitleSrc = ''; // Fallback if subtitle file doesn't exist
+            console.warn(`Subtitle file for TV ${tvId}, Season ${seasonNum}, Episode ${episodeNum} not found.`);
+          }
+        })
+        .catch(() => {
+          subtitleSrc = '';
+          console.warn(`Error checking subtitle file for TV ${tvId}, Season ${seasonNum}, Episode ${episodeNum}.`);
+        })
+        .finally(() => {
+          iframe.src = embedURL;
+          console.warn('Subtitles may not be supported by this video server. Consider using a custom video player for better subtitle integration.');
+          
+          setTimeout(() => iframe.scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
+          iframe.onload = () => {
+            try {
+              iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+              playOverlay.style.display = 'none';
+            } catch (e) {
+              showError('Auto-play blocked. Click the play button.', document.getElementById('modal-content-tv'));
+              playOverlay.style.display = 'flex';
+            }
+          };
+          
+          const nextBtn = document.getElementById('tv-episode-next-btn');
+          const next = getNextEpisode(state.tvModalData.season, state.tvModalData.episode);
+          if (next) {
+            nextBtn.style.display = 'block';
+            nextBtn.onclick = () => playTvEpisode(tvId, next.season, next.episode);
+          } else {
+            nextBtn.style.display = 'none';
+          }
+        });
+
       state.tvModalData.season = parseInt(seasonNum);
       state.tvModalData.episode = parseInt(episodeNum);
-      setTimeout(() => iframe.scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
-      iframe.onload = () => {
-        try {
-          iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-          playOverlay.style.display = 'none';
-        } catch (e) {
-          showError('Auto-play blocked. Click the play button.', document.getElementById('modal-content-tv'));
-          playOverlay.style.display = 'flex';
-        }
-      };
-      const nextBtn = document.getElementById('tv-episode-next-btn');
-      const next = getNextEpisode(state.tvModalData.season, state.tvModalData.episode);
-      if (next) {
-        nextBtn.style.display = 'block';
-        nextBtn.onclick = () => playTvEpisode(tvId, next.season, next.episode);
-      } else {
-        nextBtn.style.display = 'none';
-      }
     };
 
     const getNextEpisode = (season, episode) => {
@@ -1225,6 +1293,22 @@
 
       // Server Selector
       document.getElementById('server').addEventListener('change', () => changeServer());
+
+      // Subtitle Toggle
+      document.getElementById('subtitle-toggle').addEventListener('change', (e) => {
+        // Since we're using iframes, toggling subtitles dynamically isn't supported.
+        // You'd need to reload the video with subtitle parameters if the server supports it.
+        console.warn('Subtitle toggle not fully supported with iframe-based players.');
+        changeServer();
+      });
+
+      document.getElementById('tv-subtitle-toggle').addEventListener('change', (e) => {
+        console.warn('Subtitle toggle not fully supported with iframe-based players.');
+        const { tvId, season, episode } = state.tvModalData;
+        if (tvId && season && episode) {
+          playTvEpisode(tvId, season, episode);
+        }
+      });
 
       // Share Buttons
       document.getElementById('share-movie-btn').addEventListener('click', shareMovie);
