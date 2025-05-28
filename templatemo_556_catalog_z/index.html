@@ -692,21 +692,12 @@
           break;
         case 'netflix': 
           if (state.netflixType === 'tv') {
-            url = `https://api.themoviedb.org/3/discover/tv?api_key=${CONFIG.apiKey}&with_watch_providers=8&sort_by=popularity.desc&page=${page}`;
+            url = `https://api.themoviedb.org/3/trending/tv/day?api_key=${CONFIG.apiKey}&page=${page}`; 
             type = 'tv';
           } else {
-            url = `https://api.themoviedb.org/3/discover/movie?api_key=${CONFIG.apiKey}&with_watch_providers=8&sort_by=popularity.desc&page=${page}`;
+            url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${CONFIG.apiKey}&page=${page}`; 
           }
-          try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const data = await response.json();
-            state.totalPages = data.total_pages || 1;
-            return (data.results || []).map(item => ({ ...item, media_type: item.media_type || type }));
-          } catch (e) {
-            console.warn('Netflix provider failed, falling back to popular content:', e);
-            return await fetchItems('trending', page); // Fallback to trending content
-          }
+          break;
         case 'search': 
           url = `https://api.themoviedb.org/3/search/multi?api_key=${CONFIG.apiKey}&query=${encodeURIComponent(query)}&page=${page}`; 
           break;
@@ -723,7 +714,7 @@
         return (data.results || []).map(item => ({ ...item, media_type: item.media_type || type }));
       } catch (e) {
         console.error('Fetch error:', e);
-        showError('Failed to load content. This might be due to regional restrictions or API issues.');
+        showError('Failed to load content. Please check your internet connection or try again later.');
         return [];
       }
     };
@@ -756,4 +747,356 @@
             <div class="movie-poster position-relative">
               <img src="${item.poster_path ? CONFIG.imageBaseUrl + item.poster_path : '/img/no-poster.png'}" alt="${item.title || item.name || 'Untitled'}" class="img-fluid">
               <button class="play-overlay"><i class="fas fa-play"></i></button>
-              <button class="favorite-btn${state.favorites.some(f => f.id === item.id && f.type === item.media_type) ? ' favorited' : ''}" data-id="${item.id}" data-type="${item.media_type}"><i class="fas fa-heart"></i
+              <button class="favorite-btn${state.favorites.some(f => f.id === item.id && f.type === item.media_type) ? ' favorited' : ''}" data-id="${item.id}" data-type="${item.media_type}"><i class="fas fa-heart"></i></button>
+            </div>
+            <div class="movie-title">${item.title || item.name || 'Untitled'}</div>
+          </div>
+        `).join('');
+    };
+
+    const renderCarousel = async () => {
+      const items = await fetchItems('movies', 1);
+      state.carouselItems = items.slice(0, 3);
+      const carouselInner = document.getElementById('carousel-inner');
+      carouselInner.innerHTML = state.carouselItems.map((item, index) => `
+        <div class="carousel-item${index === 0 ? ' active' : ''}" data-id="${item.id}">
+          <img src="${item.backdrop_path ? 'https://image.tmdb.org/t/p/original' + item.backdrop_path : '/img/no-poster.png'}" class="d-block w-100" alt="${item.title || item.name}">
+          <div class="carousel-caption d-none d-md-block">
+            <h5 class="carousel-title">${item.title || item.name}</h5>
+            <p>${item.overview ? item.overview.slice(0, 100) + '...' : ''}</p>
+          </div>
+        </div>
+      `).join('');
+    };
+
+    // Modal Handling
+    const changeServer = (server, quality, auto = false, isTv = false, season = null, episode = null) => {
+      if (!state.lastModalItem && !isTv) return;
+      const iframe = document.getElementById(isTv ? 'tv-episode-player' : 'modal-video');
+      const itemId = isTv ? state.tvModalData.tvId : state.lastModalItem.id;
+      const type = isTv ? 'tv' : (state.lastModalItem.media_type || 'movie');
+      let embedURL;
+
+      if (server === 'player.videasy.net') {
+        embedURL = `https://player.videasy.net/${type}/${itemId}${isTv ? `/${season}/${episode}` : ''}?autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
+      } else if (server === 'vidsrc.cc') {
+        embedURL = `https://vidsrc.cc/api/embed/${type}/${itemId}${isTv ? `/${season}/${episode}` : ''}?autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
+      } else if (server === 'vidsrc.me') {
+        embedURL = `https://vidsrc.net/embed/${type}/?tmdb=${itemId}${isTv ? `&season=${season}&episode=${episode}` : ''}&autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
+      } else if (server === 'vidsrc.to') {
+        embedURL = `https://vidsrc.to/embed/${type}/${itemId}${isTv ? `/${season}/${episode}` : ''}?autoplay=1${quality !== 'auto' ? `&quality=${quality}` : ''}`;
+      }
+
+      const tryServer = (index = CONFIG.servers.indexOf(server)) => {
+        if (index >= CONFIG.servers.length) {
+          showError('All servers unavailable. Try again later.', document.querySelector('.modal-details'));
+          return;
+        }
+        const currentServer = CONFIG.servers[index];
+        document.getElementById('server-select').value = currentServer;
+        iframe.src = embedURL;
+
+        const timeout = setTimeout(() => tryServer(index + 1), 5000);
+        iframe.onload = () => {
+          clearTimeout(timeout);
+          try {
+            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+          } catch (e) {
+            tryServer(index + 1);
+          }
+        };
+        iframe.onerror = () => {
+          clearTimeout(timeout);
+          tryServer(index + 1);
+        };
+      };
+
+      iframe.src = '';
+      if (auto) {
+        tryServer();
+      } else {
+        iframe.src = embedURL;
+        iframe.onload = () => {
+          try {
+            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+          } catch (e) {
+            showError('Playback failed. Try another server.', document.querySelector('.modal-details'));
+          }
+        };
+      }
+    };
+
+    const showMovieModal = async (item) => {
+      addRecentlyViewed(item);
+      state.lastModalItem = item;
+      document.getElementById('modal-content-movie').style.display = 'block';
+      document.getElementById('modal-content-tv').style.display = 'none';
+      document.getElementById('modal').style.display = 'block';
+      document.getElementById('modal-title').textContent = item.title || 'Untitled';
+      document.getElementById('modal-description').textContent = item.overview || 'No description available.';
+      document.getElementById('modal-poster').src = item.poster_path ? CONFIG.imageBaseUrl + item.poster_path : '/img/no-poster.png';
+      document.getElementById('modal-genres').innerHTML = (item.genres || []).map(g => `<span class="badge">${g.name}</span>`).join('');
+
+      const serverSelect = document.getElementById('server-select');
+      const qualitySelect = document.getElementById('quality-select');
+      serverSelect.value = CONFIG.servers[0];
+      qualitySelect.value = 'auto';
+      changeServer(serverSelect.value, qualitySelect.value, true);
+    };
+
+    const showTvModal = async (tv) => {
+      addRecentlyViewed(tv);
+      document.getElementById('modal-content-movie').style.display = 'none';
+      document.getElementById('modal-content-tv').style.display = 'block';
+      document.getElementById('modal').style.display = 'block';
+      try {
+        const tvInfo = await fetch(`https://api.themoviedb.org/3/tv/${tv.id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+        state.tvModalData = { tvId: tvInfo.id, season: null, episode: null, seasons: tvInfo.seasons };
+        document.getElementById('tv-modal-title').textContent = tvInfo.name || 'Untitled';
+        document.getElementById('tv-modal-poster').src = tvInfo.poster_path ? CONFIG.imageBaseUrl + tvInfo.poster_path : '/img/no-poster.png';
+        document.getElementById('tv-modal-description').textContent = tvInfo.overview || 'No description available.';
+        document.getElementById('tv-modal-air-date').textContent = tvInfo.first_air_date || 'N/A';
+        document.getElementById('tv-modal-total-seasons').textContent = tvInfo.number_of_seasons || 'N/A';
+        document.getElementById('tv-modal-genres').innerHTML = (tvInfo.genres || []).map(g => `<span class="badge">${g.name}</span>`).join('');
+        document.getElementById('tv-modal-seasons-list').innerHTML = tvInfo.seasons.map(season => `
+          <div class="season-block">
+            <div class="season-header" tabindex="0" aria-label="Toggle ${season.name} episodes">${season.name} (${season.episode_count} eps)</div>
+            <div class="episodes-list" style="display:none;"></div>
+          </div>
+        `).join('');
+        document.getElementById('tv-episode-player').style.display = 'none';
+        document.getElementById('tv-episode-next-btn').style.display = 'none';
+      } catch (e) {
+        showError('Error loading TV details.', document.getElementById('modal-content-tv'));
+      }
+    };
+
+    const playTvEpisode = (tvId, seasonNum, episodeNum) => {
+      const iframe = document.getElementById('tv-episode-player');
+      iframe.style.display = 'block';
+      const embedURL = `https://player.videasy.net/tv/${tvId}/${seasonNum}/${episodeNum}?autoplay=1`;
+      iframe.src = embedURL;
+
+      setTimeout(() => iframe.scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+        } catch (e) {
+          showError('Auto-play blocked. Try another server.', document.getElementById('modal-content-tv'));
+        }
+      };
+
+      state.tvModalData.season = parseInt(seasonNum);
+      state.tvModalData.episode = parseInt(episodeNum);
+
+      const nextBtn = document.getElementById('tv-episode-next-btn');
+      const next = getNextEpisode(state.tvModalData.season, state.tvModalData.episode);
+      if (next) {
+        nextBtn.style.display = 'block';
+        nextBtn.onclick = () => playTvEpisode(tvId, next.season, next.episode);
+      } else {
+        nextBtn.style.display = 'none';
+      }
+    };
+
+    const getNextEpisode = (season, episode) => {
+      const sidx = state.tvModalData.seasons.findIndex(s => s.season_number === season);
+      if (sidx === -1) return null;
+      const currSeason = state.tvModalData.seasons[sidx];
+      if (episode < currSeason.episode_count) {
+        return { season: currSeason.season_number, episode: episode + 1 };
+      }
+      if (sidx + 1 < state.tvModalData.seasons.length) {
+        const nextSeason = state.tvModalData.seasons[sidx + 1];
+        if (nextSeason.episode_count > 0) {
+          return { season: nextSeason.season_number, episode: 1 };
+        }
+      }
+      return null;
+    };
+
+    // Infinite Scroll
+    const loadMoreItems = async (clear = false) => {
+      if (state.isLoading || state.reachedEnd) return;
+      state.isLoading = true;
+      let items = [];
+      if (state.currentMode === 'favorites') {
+        const promises = state.favorites.map(favorite => fetchFavoriteDetails(favorite));
+        items = (await Promise.all(promises)).filter(item => item !== null);
+      } else {
+        items = await fetchItems(state.currentMode, state.currentPage, state.searchQuery);
+      }
+      if (items.length) {
+        renderItems(items, clear);
+        state.currentPage++;
+        if (state.currentPage > state.totalPages) state.reachedEnd = true;
+      } else {
+        state.reachedEnd = true;
+      }
+      state.isLoading = false;
+    };
+
+    const resetContent = () => {
+      state.currentPage = 1;
+      state.reachedEnd = false;
+      const netflixFilter = document.getElementById('netflix-filter');
+      netflixFilter.style.display = state.currentMode === 'netflix' ? 'flex' : 'none';
+      loadMoreItems(true);
+    };
+
+    // Event Listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      const movieList = document.getElementById('movie-list');
+      const modal = document.getElementById('modal');
+      const carouselInner = document.getElementById('carousel-inner');
+      const searchInput = document.getElementById('search-input');
+      const netflixTypeSelect = document.getElementById('netflix-type');
+
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          state.currentMode = link.id.replace('nav-', '');
+          state.searchQuery = '';
+          searchInput.value = '';
+          document.querySelector('.nav-link.active').classList.remove('active');
+          link.classList.add('active');
+          resetContent();
+        });
+      });
+
+      movieList.addEventListener('click', async (e) => {
+        const col = e.target.closest('.movie-col');
+        if (!col) return;
+        const id = parseInt(col.dataset.id);
+        const type = col.dataset.type;
+        if (e.target.classList.contains('favorite-btn') || e.target.parentElement.classList.contains('favorite-btn')) {
+          toggleFavorite(id, type);
+        } else {
+          try {
+            const item = await fetch(`https://api.themoviedb.org/3/${type}/${id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+            item.media_type = type;
+            type === 'tv' ? showTvModal(item) : showMovieModal(item);
+          } catch (e) {
+            showError('Error loading item.');
+          }
+        }
+      });
+
+      carouselInner.addEventListener('click', async (e) => {
+        const itemEl = e.target.closest('.carousel-item');
+        if (!itemEl) return;
+        const id = itemEl.dataset.id;
+        const item = state.carouselItems.find(i => i.id == id);
+        if (item) {
+          try {
+            const fullItem = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+            showMovieModal(fullItem);
+          } catch (e) {
+            showError('Error loading carousel item.');
+          }
+        }
+      });
+
+      modal.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('modal-close') || e.target === modal) {
+          modal.style.display = 'none';
+          document.getElementById('modal-video').src = '';
+          document.getElementById('tv-episode-player').style.display = 'none';
+          document.getElementById('tv-episode-player').src = '';
+          document.getElementById('tv-episode-next-btn').style.display = 'none';
+        } else if (e.target.closest('#fullscreen-btn')) {
+          const iframe = document.getElementById('modal-video');
+          if (iframe.requestFullscreen) {
+            iframe.requestFullscreen();
+          } else if (iframe.webkitRequestFullscreen) {
+            iframe.webkitRequestFullscreen();
+          } else if (iframe.msRequestFullscreen) {
+            iframe.msRequestFullscreen();
+          }
+        } else if (e.target.closest('#tv-fullscreen-btn')) {
+          const iframe = document.getElementById('tv-episode-player');
+          if (iframe.requestFullscreen) {
+            iframe.requestFullscreen();
+          } else if (iframe.webkitRequestFullscreen) {
+            iframe.webkitRequestFullscreen();
+          } else if (iframe.msRequestFullscreen) {
+            iframe.msRequestFullscreen();
+          }
+        } else if (e.target.closest('.season-header')) {
+          const seasonBlock = e.target.closest('.season-block');
+          const epList = seasonBlock.querySelector('.episodes-list');
+          const seasonNum = state.tvModalData.seasons.find(s => s.name === e.target.textContent.split(' (')[0])?.season_number;
+          if (epList.style.display === 'none') {
+            if (!epList.innerHTML) {
+              try {
+                const data = await fetch(`https://api.themoviedb.org/3/tv/${state.tvModalData.tvId}/season/${seasonNum}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+                epList.innerHTML = (data.episodes || []).map(ep => `
+                  <div class="episode-block">
+                    <span>Ep ${ep.episode_number}: ${ep.name || '(Untitled)'} <small>${ep.air_date || ''}</small></span>
+                    <button class="tv-episode-play-btn" data-tv-id="${state.tvModalData.tvId}" data-season="${seasonNum}" data-episode="${ep.episode_number}">Play</button>
+                  </div>
+                `).join('');
+              } catch (e) {
+                showError('Error loading episodes.', document.getElementById('modal-content-tv'));
+              }
+            }
+            epList.style.display = 'block';
+          } else {
+            epList.style.display = 'none';
+          }
+        } else if (e.target.closest('.tv-episode-play-btn')) {
+          const { tvId, season, episode } = e.target.dataset;
+          playTvEpisode(tvId, season, episode);
+        }
+      });
+
+      document.getElementById('server-select').addEventListener('change', () => {
+        const server = document.getElementById('server-select').value;
+        const quality = document.getElementById('quality-select').value;
+        changeServer(server, quality);
+      });
+
+      document.getElementById('quality-select').addEventListener('change', () => {
+        const server = document.getElementById('server-select').value;
+        const quality = document.getElementById('quality-select').value;
+        changeServer(server, quality);
+      });
+
+      document.getElementById('search-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const query = searchInput.value.trim();
+        if (query) {
+          state.currentMode = 'search';
+          state.searchQuery = query;
+          resetContent();
+        }
+      });
+
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim();
+        if (!query && state.currentMode === 'search') {
+          state.currentMode = 'movies';
+          state.searchQuery = '';
+          resetContent();
+        }
+      });
+
+      netflixTypeSelect.addEventListener('change', () => {
+        state.netflixType = netflixTypeSelect.value;
+        resetContent();
+      });
+
+      window.addEventListener('scroll', () => {
+        if (state.isLoading || state.reachedEnd) return;
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+          loadMoreItems();
+        }
+      });
+
+      // Initial Load
+      renderCarousel();
+      resetContent();
+    });
+  </script>
+</body>
+</html>
