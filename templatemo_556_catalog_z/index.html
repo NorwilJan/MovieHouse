@@ -113,29 +113,6 @@
       border-bottom: 2px solid var(--accent-color);
     }
 
-    /* Search Form */
-    .search-form {
-      max-width: 400px;
-      width: 100%;
-    }
-
-    .search-form input {
-      background: var(--secondary-bg);
-      border: 1px solid var(--border-color);
-      color: var(--text-color);
-      font-size: clamp(0.85rem, 2vw, 1rem);
-    }
-
-    .search-form button {
-      background: var(--accent-color);
-      border: none;
-      transition: background 0.2s;
-    }
-
-    .search-form button:hover {
-      background: var(--accent-hover);
-    }
-
     /* Movie Poster Grid */
     .movie-col {
       padding: 0.5rem;
@@ -407,53 +384,6 @@
     .footer a:hover {
       text-decoration: underline;
     }
-
-    /* Responsive Grid */
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      margin: 0 -0.5rem;
-    }
-
-    .row-cols-1 > * {
-      flex: 0 0 100%;
-      max-width: 100%;
-    }
-
-    @media (min-width: 576px) {
-      .row-cols-md-4 > * {
-        flex: 0 0 50%;
-        max-width: 50%;
-      }
-    }
-
-    @media (min-width: 768px) {
-      .row-cols-md-4 > * {
-        flex: 0 0 33.333%;
-        max-width: 33.333%;
-      }
-    }
-
-    @media (min-width: 992px) {
-      .row-cols-md-4 > * {
-        flex: 0 0 25%;
-        max-width: 25%;
-      }
-    }
-
-    @media (min-width: 1200px) {
-      .row-cols-md-4 > * {
-        flex: 0 0 20%;
-        max-width: 20%;
-      }
-    }
-
-    @media (min-width: 1400px) {
-      .row-cols-md-4 > * {
-        flex: 0 0 16.666%;
-        max-width: 16.666%;
-      }
-    }
   </style>
 
 </head>
@@ -493,7 +423,7 @@
     </div>
   </nav>
 
-  <!-- Content -->
+  <!-- Content Section -->
   <div id="carousel" class="carousel slide" data-bs-ride="carousel">
     <div class="carousel-inner" id="carousel-inner"></div>
     <button class="carousel-control-prev" type="button" data-bs-target="#carousel" data-bs-slide="prev">
@@ -580,7 +510,362 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-0gnw5z2zS3C0kRN8W6v2x0l4x4w5g4Q/6rT5m8sQ7xFzS5r5w4U4m7j5w5g4Q6s4rT5m8sQ7xFzS5r5w4U4m7j"
     crossorigin="anonymous"></script>
   <script>
-    // JavaScript functions as per your application logic go here
+    // Configuration
+    const CONFIG = {
+      apiKey: '40f1982842db35042e8561b13b38d492',
+      imageBaseUrl: 'https://image.tmdb.org/t/p/w500',
+      servers: ['player.videasy.net', 'vidsrc.cc', 'vidsrc.me', 'vidsrc.to'],
+      watchRegion: 'US'
+    };
+
+    // State
+    let state = {
+      currentMode: 'movies',
+      currentPage: 1,
+      totalPages: 1,
+      favorites: JSON.parse(localStorage.getItem('favorites') || '[]'),
+      recentlyViewed: JSON.parse(localStorage.getItem('recently_viewed') || '[]'),
+      isLoading: false,
+      reachedEnd: false,
+      lastModalItem: null,
+      tvModalData: { tvId: null, season: null, episode: null, seasons: [] },
+      searchQuery: '',
+      netflixType: 'movie',
+      isNetflixFallback: false,
+      carouselItems: []
+    };
+
+    // Utility Functions
+    const showError = (message, container = document.getElementById('movie-list')) => {
+      container.innerHTML = `<div class="text-center text-warning">${message}</div>`;
+    };
+
+    const toggleFavorite = (id, type) => {
+      const itemIndex = state.favorites.findIndex(f => f.id === id && f.type === type);
+      if (itemIndex > -1) {
+        state.favorites.splice(itemIndex, 1);
+      } else {
+        state.favorites.push({ id, type });
+      }
+      localStorage.setItem('favorites', JSON.stringify(state.favorites));
+      updateFavoriteButtons();
+      if (state.currentMode === 'favorites') {
+        resetContent();
+        renderCarousel('favorites');
+      }
+    };
+
+    const updateFavoriteButtons = () => {
+      document.querySelectorAll('.favorite-btn').forEach(btn => {
+        const id = parseInt(btn.dataset.id);
+        const type = btn.dataset.type;
+        const isFavorited = state.favorites.some(f => f.id === id && f.type === type);
+        btn.classList.toggle('favorited', isFavorited);
+      });
+    };
+
+    const addRecentlyViewed = (item) => {
+      state.recentlyViewed = state.recentlyViewed.filter(m => m.id !== item.id);
+      state.recentlyViewed.unshift({
+        id: item.id,
+        title: item.title || item.name,
+        poster_path: item.poster_path
+      });
+      if (state.recentlyViewed.length > 12) state.recentlyViewed.pop();
+      localStorage.setItem('recently_viewed', JSON.stringify(state.recentlyViewed));
+    };
+
+    // API and Rendering
+    const fetchItems = async (mode, page = 1, query = '', retries = 2) => {
+      let url;
+      let type = 'movie';
+      const spinner = document.getElementById('loading-spinner');
+      const fallbackMessage = document.getElementById('fallback-message');
+      spinner.style.display = 'block';
+      fallbackMessage.style.display = 'none';
+      state.isNetflixFallback = false;
+
+      switch (mode) {
+        case 'tvshows': 
+          url = `https://api.themoviedb.org/3/trending/tv/day?api_key=${CONFIG.apiKey}&page=${page}`; 
+          type = 'tv';
+          break;
+        case 'anime': 
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${CONFIG.apiKey}&with_genres=16&sort_by=popularity.desc&page=${page}`; 
+          break;
+        case 'tagalog': 
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${CONFIG.apiKey}&with_original_language=tl&sort_by=popularity.desc&page=${page}`; 
+          break;
+        case 'netflix': 
+          type = state.netflixType === 'tv' ? 'tv' : 'movie';
+          url = `https://api.themoviedb.org/3/discover/${type}?api_key=${CONFIG.apiKey}&with_watch_providers=8&watch_region=${CONFIG.watchRegion}&sort_by=popularity.desc&page=${page}`;
+          break;
+        case 'search': 
+          url = `https://api.themoviedb.org/3/search/multi?api_key=${CONFIG.apiKey}&query=${encodeURIComponent(query)}&page=${page}`; 
+          break;
+        case 'favorites':
+          // Validate favorites array
+          const validFavorites = state.favorites.filter(f => f && typeof f === 'object' && f.id && f.type);
+          if (!validFavorites.length) return [];
+          const fetchPromises = validFavorites.map(f => fetchFavoriteDetails(f));
+          const items = await Promise.all(fetchPromises);
+          return items.filter(item => item !== null).slice(0, 3);
+        default: 
+          url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${CONFIG.apiKey}&page=${page}`; 
+      }
+
+      try {
+        console.log(`Fetching from: ${url}`);
+        const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        console.log('Fetched data:', data);
+
+        if (mode === 'netflix' && (!data.results || data.results.length === 0)) {
+          throw new Error('No Netflix content available');
+        }
+
+        state.totalPages = data.total_pages || 1;
+        return (data.results || []).map(item => ({ ...item, media_type: item.media_type || type })).slice(0, 3);
+      } catch (e) {
+        console.error('Fetch error:', e);
+
+        if (mode === 'netflix') {
+          console.log('Falling back to trending endpoint...');
+          state.isNetflixFallback = true;
+          fallbackMessage.style.display = 'block';
+          const fallbackUrl = `https://api.themoviedb.org/3/trending/${type}/day?api_key=${CONFIG.apiKey}&page=${page}`;
+          try {
+            console.log(`Fetching fallback from: ${fallbackUrl}`);
+            const fallbackResponse = await fetch(fallbackUrl, { signal: AbortSignal.timeout(10000) });
+            if (!fallbackResponse.ok) throw new Error(`HTTP ${fallbackResponse.status}`);
+            const fallbackData = await fallbackResponse.json();
+            console.log('Fallback data:', fallbackData);
+            state.totalPages = fallbackData.total_pages || 1;
+            return (fallbackData.results || []).map(item => ({ ...item, media_type: item.media_type || type })).slice(0, 3);
+          } catch (fallbackError) {
+            console.error('Fallback fetch error:', fallbackError);
+            showError('Failed to load content. Please check your internet connection or try again later.');
+            return [];
+          }
+        }
+
+        if (retries > 0) {
+          console.log(`Retrying... (${retries} attempts left)`);
+          return await fetchItems(mode, page, query, retries - 1);
+        }
+
+        showError('Failed to load content. Please check your internet connection or try again later.');
+        return [];
+      } finally {
+        spinner.style.display = 'none';
+      }
+    };
+
+    const fetchFavoriteDetails = async (favorite) => {
+      if (!favorite || !favorite.id || !favorite.type) return null;
+      const { id, type } = favorite;
+      try {
+        const url = `https://api.themoviedb.org/3/${type}/${id}?api_key=${CONFIG.apiKey}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return { ...data, media_type: type };
+      } catch (e) {
+        console.error(`Error fetching favorite ${id}:`, e);
+        return null;
+      }
+    };
+
+    // Render Functions
+    const renderItems = (items, clear = false) => {
+      const container = document.getElementById('movie-list');
+      if (clear) container.innerHTML = '';
+      if (!items.length && clear) {
+        container.innerHTML = '<div class="text-center text-warning">No items found.</div>';
+        return;
+      }
+      container.innerHTML += items
+        .filter(item => item && item.media_type !== 'person')
+        .map(item => `
+          <div class="col movie-col" data-id="${item.id}" data-type="${item.media_type}">
+            <div class="movie-poster position-relative">
+              <img src="${item.poster_path ? CONFIG.imageBaseUrl + item.poster_path : '/img/no-poster.png'}" alt="${item.title || item.name || 'Untitled'}" class="img-fluid">
+              <button class="play-overlay"><i class="fas fa-play"></i></button>
+              <button class="favorite-btn${state.favorites.some(f => f.id === item.id && f.type === item.media_type) ? ' favorited' : ''}" data-id="${item.id}" data-type="${item.media_type}"><i class="fas fa-heart"></i></button>
+            </div>
+            <div class="movie-title">${item.title || item.name || 'Untitled'}</div>
+          </div>
+        `).join('');
+    };
+
+    const renderCarousel = async (mode) => {
+      let items;
+      if (mode === 'favorites') {
+        items = await fetchItems('favorites');
+        if (items.length < 3 && state.favorites.length > items.length) {
+          const validFavorites = state.favorites.filter(f => f && typeof f === 'object' && f.id && f.type);
+          const additionalPromises = validFavorites.slice(items.length, 3).map(f => fetchFavoriteDetails(f));
+          const additionalItems = await Promise.all(additionalPromises);
+          items = [...items, ...additionalItems.filter(item => item !== null)];
+        }
+      } else {
+        items = await fetchItems(mode);
+      }
+      state.carouselItems = items.slice(0, 3);
+      const carouselInner = document.getElementById('carousel-inner');
+
+      if (!state.carouselItems.length) {
+        carouselInner.innerHTML = '<div class="text-center text-warning">No items to display.</div>';
+        return;
+      }
+
+      carouselInner.innerHTML = state.carouselItems.map((item, index) => {
+        if (!item || !item.id) return '';
+        return `
+          <div class="carousel-item${index === 0 ? ' active' : ''}" data-id="${item.id}" data-type="${item.media_type}">
+            <img src="${item.backdrop_path ? 'https://image.tmdb.org/t/p/original' + item.backdrop_path : '/img/no-poster.png'}" class="d-block w-100" alt="${item.title || item.name || 'Untitled'}">
+            <div class="carousel-caption d-none d-md-block">
+              <h5 class="carousel-title">${item.title || item.name || 'Untitled'}</h5>
+              <p>${item.overview ? item.overview.slice(0, 100) + '...' : 'No description available.'}</p>
+            </div>
+          </div>
+        `;
+      }).filter(Boolean).join('');
+
+      // Initialize the Bootstrap carousel after rendering items
+      if (state.carouselItems.length > 0) {
+        const carouselElement = document.getElementById('carousel');
+        if (carouselElement) {
+          const existingCarousel = bootstrap.Carousel.getInstance(carouselElement);
+          if (existingCarousel) {
+            existingCarousel.dispose();
+          }
+          new bootstrap.Carousel(carouselElement, {
+            interval: 5000,
+            ride: 'carousel',
+            pause: 'hover'
+          });
+        }
+      }
+    };
+
+    // Modal Handling
+    const showMovieModal = async (item) => {
+      addRecentlyViewed(item);
+      state.lastModalItem = item;
+      document.getElementById('modal-content-movie').style.display = 'block';
+      document.getElementById('modal-content-tv').style.display = 'none';
+      document.getElementById('modal').style.display = 'block';
+      document.getElementById('modal-title').textContent = item.title || 'Untitled';
+      document.getElementById('modal-description').textContent = item.overview || 'No description available.';
+      document.getElementById('modal-poster').src = item.poster_path ? CONFIG.imageBaseUrl + item.poster_path : '/img/no-poster.png';
+      document.getElementById('modal-genres').innerHTML = (item.genres || []).map(g => `<span class="badge">${g.name}</span>`).join('');
+
+      const serverSelect = document.getElementById('server-select');
+      const qualitySelect = document.getElementById('quality-select');
+      serverSelect.value = CONFIG.servers[0];
+      qualitySelect.value = 'auto';
+      changeServer(serverSelect.value, qualitySelect.value, true);
+    };
+
+    const showTvModal = async (tv) => {
+      addRecentlyViewed(tv);
+      document.getElementById('modal-content-movie').style.display = 'none';
+      document.getElementById('modal-content-tv').style.display = 'block';
+      document.getElementById('modal').style.display = 'block';
+      try {
+        const tvInfo = await fetch(`https://api.themoviedb.org/3/tv/${tv.id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+        state.tvModalData = { tvId: tvInfo.id, season: null, episode: null, seasons: tvInfo.seasons };
+        document.getElementById('tv-modal-title').textContent = tvInfo.name || 'Untitled';
+        document.getElementById('tv-modal-poster').src = tvInfo.poster_path ? CONFIG.imageBaseUrl + tvInfo.poster_path : '/img/no-poster.png';
+        document.getElementById('tv-modal-description').textContent = tvInfo.overview || 'No description available.';
+        document.getElementById('tv-modal-air-date').textContent = tvInfo.first_air_date || 'N/A';
+        document.getElementById('tv-modal-total-seasons').textContent = tvInfo.number_of_seasons || 'N/A';
+        document.getElementById('tv-modal-genres').innerHTML = (tvInfo.genres || []).map(g => `<span class="badge">${g.name}</span>`).join('');
+        document.getElementById('tv-modal-seasons-list').innerHTML = tvInfo.seasons.map(season => `
+          <div class="season-block">
+            <div class="season-header" tabindex="0" aria-label="Toggle ${season.name} episodes">${season.name} (${season.episode_count} eps)</div>
+            <div class="episodes-list" style="display:none;"></div>
+          </div>
+        `).join('');
+        document.getElementById('tv-episode-player').style.display = 'none';
+        document.getElementById('tv-episode-next-btn').style.display = 'none';
+      } catch (e) {
+        showError('Error loading TV details.', document.getElementById('modal-content-tv'));
+      }
+    };
+
+    // Event Listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      const movieList = document.getElementById('movie-list');
+      const modal = document.getElementById('modal');
+      const carouselInner = document.getElementById('carousel-inner');
+      const searchInput = document.getElementById('search-input');
+      const netflixTypeSelect = document.getElementById('netflix-type');
+
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', async (e) => {
+          e.preventDefault();
+          state.currentMode = link.id.replace('nav-', '');
+          state.searchQuery = '';
+          searchInput.value = '';
+          document.querySelector('.nav-link.active').classList.remove('active');
+          link.classList.add('active');
+          resetContent();
+          await renderCarousel(state.currentMode);
+        });
+      });
+
+      movieList.addEventListener('click', async (e) => {
+        const col = e.target.closest('.movie-col');
+        if (!col) return;
+        const id = parseInt(col.dataset.id);
+        const type = col.dataset.type;
+        if (e.target.classList.contains('favorite-btn') || e.target.parentElement.classList.contains('favorite-btn')) {
+          toggleFavorite(id, type);
+        } else {
+          try {
+            const item = await fetch(`https://api.themoviedb.org/3/${type}/${id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+            item.media_type = type;
+            type === 'tv' ? showTvModal(item) : showMovieModal(item);
+          } catch (e) {
+            showError('Error loading item.');
+          }
+        }
+      });
+
+      carouselInner.addEventListener('click', async (e) => {
+        const itemEl = e.target.closest('.carousel-item');
+        if (!itemEl) return;
+        const id = itemEl.dataset.id;
+        const type = itemEl.dataset.type;
+        const item = state.carouselItems.find(i => i.id == id);
+        if (item) {
+          try {
+            const fullItem = await fetch(`https://api.themoviedb.org/3/${type || item.media_type || 'movie'}/${id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+            fullItem.media_type = type || item.media_type || 'movie';
+            fullItem.media_type === 'tv' ? showTvModal(fullItem) : showMovieModal(fullItem);
+          } catch (e) {
+            showError('Error loading carousel item.');
+          }
+        }
+      });
+
+      modal.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('modal-close') || e.target === modal) {
+          modal.style.display = 'none';
+          document.getElementById('modal-video').src = '';
+          document.getElementById('tv-episode-player').style.display = 'none';
+          document.getElementById('tv-episode-player').src = '';
+          document.getElementById('tv-episode-next-btn').style.display = 'none';
+        }
+      });
+
+      // Initial Load
+      renderCarousel(state.currentMode);
+      resetContent();
+    });
   </script>
 
 </body>
