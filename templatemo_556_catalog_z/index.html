@@ -262,10 +262,6 @@
       border-radius: 8px;
       margin-bottom: 10px;
     }
-    .modal-text {
-      min-width: 0;
-      flex: 1 1 240px;
-    }
     .modal-genre, .modal-cast, .modal-crew {
       font-size: 0.97em;
       margin-bottom: 6px;
@@ -529,7 +525,7 @@
   <div class="tm-hero d-flex justify-content-center align-items-center" data-parallax="scroll"
     data-image-src="">
     <form class="d-flex tm-search-form" id="movie-search-form" autocomplete="off" style="width:100%;max-width:600px;margin:2em auto;">
-      <input class="form-control tm-search-input" type="search" id="movie-search-input" placeholder="Search for any movie..." aria-label="Search">
+      <input class="form-control tm-search-input" type="search" id="movie-search-input" placeholder="Search for movies or TV shows..." aria-label="Search">
       <button class="btn btn-outline-success tm-search-btn" type="submit">
         <i class="fas fa-search"></i>
       </button>
@@ -689,9 +685,16 @@
       });
     }
     let recentlyViewed = JSON.parse(localStorage.getItem("recently_viewed") || "[]");
-    function addRecentlyViewed(movie) {
-      recentlyViewed = recentlyViewed.filter(m => m.id !== movie.id);
-      recentlyViewed.unshift({ id: movie.id, title: movie.title, poster_path: movie.poster_path, release_date: movie.release_date });
+    function addRecentlyViewed(item) {
+      const isTv = !!item.name && !item.title;
+      recentlyViewed = recentlyViewed.filter(m => m.id !== item.id || m.media_type !== (isTv ? 'tv' : 'movie'));
+      recentlyViewed.unshift({ 
+        id: item.id, 
+        title: item.title || item.name, 
+        poster_path: item.poster_path, 
+        release_date: item.release_date || item.first_air_date, 
+        media_type: isTv ? 'tv' : 'movie' 
+      });
       if (recentlyViewed.length > 12) recentlyViewed = recentlyViewed.slice(0, 12);
       localStorage.setItem("recently_viewed", JSON.stringify(recentlyViewed));
       renderRecentlyViewed();
@@ -705,21 +708,24 @@
       }
       section.style.display = "";
       list.innerHTML = "";
-      recentlyViewed.forEach(movie => {
+      recentlyViewed.forEach(item => {
         const div = document.createElement("div");
         div.className = "movie-col";
         div.innerHTML = `
           <div class="movie-poster-wrapper" tabindex="0">
-            <img src="${movie.poster_path ? imageBaseUrl + movie.poster_path : 'img/no-poster.png'}" alt="${movie.title}" class="img-fluid movie-poster-img">
+            <img src="${item.poster_path ? imageBaseUrl + item.poster_path : 'img/no-poster.png'}" alt="${item.title}" class="img-fluid movie-poster-img">
           </div>
           <div class="movie-metadata">
-            <span class="movie-title" title="${movie.title}">${movie.title}</span>
-            <span class="movie-year">${movie.release_date ? movie.release_date.slice(0, 4) : ""}</span>
+            <span class="movie-title" title="${item.title}">${item.title}</span>
+            <span class="movie-year">${item.release_date ? item.release_date.slice(0, 4) : ""}</span>
           </div>
         `;
         div.onclick = () => {
-          fetch(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${apiKey}`)
-            .then(r => r.json()).then(showDetails);
+          fetch(`https://api.themoviedb.org/3/${item.media_type}/${item.id}?api_key=${apiKey}`)
+            .then(r => r.json()).then(data => {
+              if (item.media_type === 'tv') showTvDetails(data);
+              else showDetails(data);
+            });
         };
         list.appendChild(div);
       });
@@ -733,7 +739,7 @@
         return [];
       }
       if (currentMode === "search" && currentQuery.trim()) {
-        url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`;
+        url = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`;
       } else if (currentMode === "anime") {
         url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
       } else if (currentMode === "tagalog") {
@@ -761,15 +767,15 @@
         return [];
       }
     }
-    function renderMovies(movies, clear = false) {
+    function renderMovies(items, clear = false) {
       const container = document.getElementById('movie-list');
       if (clear) container.innerHTML = '';
-      if (!movies || movies.length === 0) {
+      if (!items || items.length === 0) {
         if (clear) container.innerHTML = `<div class="empty-state">No items found for your filter or search.</div>`;
         return;
       }
-      movies.forEach(item => {
-        const isTv = !!item.name && !item.title;
+      items.forEach(item => {
+        const isTv = item.media_type === 'tv' || !!item.name && !item.title;
         const movieDiv = document.createElement('div');
         movieDiv.className = 'movie-col';
         movieDiv.innerHTML = `
@@ -784,6 +790,7 @@
           <div class="movie-metadata">
             <span class="movie-title" title="${isTv ? item.name : item.title}">${isTv ? item.name : item.title}</span>
             <span class="movie-year">${(isTv ? item.first_air_date : item.release_date) ? (isTv ? item.first_air_date : item.release_date).slice(0, 4) : ""}</span>
+            ${isTv ? '<span class="movie-type" style="font-size:0.9em;color:#1976d2;">TV Show</span>' : ''}
           </div>
         `;
         movieDiv.querySelector('.play-btn-centered').onclick = () => isTv ? showTvDetails(item) : showDetails(item);
@@ -802,16 +809,16 @@
       if (isLoading || reachedEnd) return;
       isLoading = true;
       document.getElementById("infinite-loader").style.display = "";
-      const movies = await fetchMoviesInf(currentPage);
-      if (movies.length > 0) {
-        if (clear) categoryItems = movies;
-        else categoryItems = [...categoryItems, ...movies];
-        renderMovies(movies, clear);
+      const items = await fetchMoviesInf(currentPage);
+      if (items.length > 0) {
+        if (clear) categoryItems = items;
+        else categoryItems = [...categoryItems, ...items];
+        renderMovies(items, clear);
         currentPage++;
         if (currentPage > totalPages) reachedEnd = true;
       } else {
         reachedEnd = true;
-        if (clear && !movies.length) {
+        if (clear && !items.length) {
           document.getElementById('movie-list').innerHTML = `<div class="empty-state">No items found.</div>`;
         }
       }
