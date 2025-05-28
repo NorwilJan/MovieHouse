@@ -706,7 +706,6 @@
       updateFavoriteButtons();
       if (state.currentMode === 'favorites') {
         resetContent();
-        renderCarousel('favorites');
       }
     };
 
@@ -758,8 +757,6 @@
         case 'search': 
           url = `https://api.themoviedb.org/3/search/multi?api_key=${CONFIG.apiKey}&query=${encodeURIComponent(query)}&page=${page}`; 
           break;
-        case 'favorites':
-          return state.favorites.map(f => fetchFavoriteDetails(f)).filter(item => item !== null).slice(0, 3);
         default: 
           url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${CONFIG.apiKey}&page=${page}`; 
       }
@@ -776,7 +773,7 @@
         }
 
         state.totalPages = data.total_pages || 1;
-        return (data.results || []).map(item => ({ ...item, media_type: item.media_type || type })).slice(0, 3);
+        return (data.results || []).map(item => ({ ...item, media_type: item.media_type || type }));
       } catch (e) {
         console.error('Fetch error:', e);
 
@@ -792,7 +789,7 @@
             const fallbackData = await fallbackResponse.json();
             console.log('Fallback data:', fallbackData);
             state.totalPages = fallbackData.total_pages || 1;
-            return (fallbackData.results || []).map(item => ({ ...item, media_type: item.media_type || type })).slice(0, 3);
+            return (fallbackData.results || []).map(item => ({ ...item, media_type: item.media_type || type }));
           } catch (fallbackError) {
             console.error('Fallback fetch error:', fallbackError);
             showError('Failed to load content. Please check your internet connection or try again later.');
@@ -847,17 +844,8 @@
         `).join('');
     };
 
-    const renderCarousel = async (mode) => {
-      let items;
-      if (mode === 'favorites') {
-        items = await fetchItems('favorites');
-        if (items.length < 3 && state.favorites.length > items.length) {
-          const additionalItems = await Promise.all(state.favorites.slice(items.length, 3).map(f => fetchFavoriteDetails(f)));
-          items = [...items, ...additionalItems.filter(item => item !== null)];
-        }
-      } else {
-        items = await fetchItems(mode);
-      }
+    const renderCarousel = async () => {
+      const items = await fetchItems('movies', 1);
       state.carouselItems = items.slice(0, 3);
       const carouselInner = document.getElementById('carousel-inner');
       carouselInner.innerHTML = state.carouselItems.map((item, index) => `
@@ -874,18 +862,18 @@
       if (state.carouselItems.length > 0) {
         const carouselElement = document.getElementById('carousel');
         if (carouselElement) {
+          // Dispose of any existing carousel instance to prevent conflicts
           const existingCarousel = bootstrap.Carousel.getInstance(carouselElement);
           if (existingCarousel) {
             existingCarousel.dispose();
           }
+          // Initialize a new carousel instance
           new bootstrap.Carousel(carouselElement, {
-            interval: 5000,
+            interval: 5000, // Auto-slide every 5 seconds
             ride: 'carousel',
             pause: 'hover'
           });
         }
-      } else {
-        carouselInner.innerHTML = '<div class="text-center text-warning">No items to display.</div>';
       }
     };
 
@@ -1073,7 +1061,7 @@
       const netflixTypeSelect = document.getElementById('netflix-type');
 
       document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', async (e) => {
+        link.addEventListener('click', (e) => {
           e.preventDefault();
           state.currentMode = link.id.replace('nav-', '');
           state.searchQuery = '';
@@ -1081,7 +1069,6 @@
           document.querySelector('.nav-link.active').classList.remove('active');
           link.classList.add('active');
           resetContent();
-          await renderCarousel(state.currentMode); // Update carousel based on selected mode
         });
       });
 
@@ -1110,9 +1097,8 @@
         const item = state.carouselItems.find(i => i.id == id);
         if (item) {
           try {
-            const fullItem = await fetch(`https://api.themoviedb.org/3/${item.media_type || 'movie'}/${id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
-            fullItem.media_type = item.media_type || 'movie';
-            fullItem.media_type === 'tv' ? showTvModal(fullItem) : showMovieModal(fullItem);
+            const fullItem = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${CONFIG.apiKey}`).then(r => r.json());
+            showMovieModal(fullItem);
           } catch (e) {
             showError('Error loading carousel item.');
           }
@@ -1191,7 +1177,6 @@
           state.currentMode = 'search';
           state.searchQuery = query;
           resetContent();
-          renderCarousel('search');
         }
       });
 
@@ -1201,14 +1186,12 @@
           state.currentMode = 'movies';
           state.searchQuery = '';
           resetContent();
-          renderCarousel('movies');
         }
       });
 
       netflixTypeSelect.addEventListener('change', () => {
         state.netflixType = netflixTypeSelect.value;
         resetContent();
-        renderCarousel('netflix');
       });
 
       window.addEventListener('scroll', () => {
@@ -1219,7 +1202,7 @@
       });
 
       // Initial Load
-      renderCarousel(state.currentMode);
+      renderCarousel();
       resetContent();
     });
   </script>
