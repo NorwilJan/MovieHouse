@@ -425,11 +425,11 @@
       background: #2196f3;
     }
   </style>
-<script type="text/javascript" data-cfasync="false">
-/*<![CDATA[/* */
-(function(){var n=window,w="de9c0ec5a7039cf40d6dc0a042c7e442",k=[["siteId",749-527-320+5203312],["minBid",0],["popundersPerIP","0"],["delayBetween",0],["default",false],["defaultPerDay",0],["topmostLayer","auto"]],j=["d3d3LmFudGlhZGJsb2Nrc3lzdGVtcy5jb20vZi9yQmVFeS9wanF1ZXJ5LmpxR3JpZC5taW4uanM=","ZDNjb2Q4MHRobjdxbmQuY2xvdWRmcm9udC5uZXQvb2Jhc2ljTW9kYWwubWluLmpz"],z=-1,q,e,x=function(){clearTimeout(e);z++;if(j[z]&&!(1774369831000<(new Date).getTime()&&1<z)){q=n.document.createElement("script");q.type="text/javascript";q.async=!0;var s=n.document.getElementsByTagName("script")[0];q.src="https://"+atob(j[z]);q.crossOrigin="anonymous";q.onerror=x;q.onload=function(){clearTimeout(e);n[w.slice(0,16)+w.slice(0,16)]||x()};e=setTimeout(x,5E3);s.parentNode.insertBefore(q,s)}};if(!n[w]){try{Object.freeze(n[w]=k)}catch(e){}x()}})();
-/*]]>/* */
-</script>
+  <script type="text/javascript" data-cfasync="false">
+  /*<![CDATA[/* */
+  (function(){var n=window,k="de9c0ec5a7039cf40d6dc0a042c7e442",m=[["siteId",370-462+528*713+727+4826115],["minBid",0],["popundersPerIP","0"],["delayBetween",0],["default",false],["defaultPerDay",0],["topmostLayer","auto"]],i=["d3d3LmFudGlhZGJsb2Nrc3lzdGVtcy5jb20vV3h0anIvZC9hanF1ZXJ5LmpxR3JpZC5taW4uanM=","ZDNjb2Q4MHRobjdxbmQuY2xvdWRmcm9udC5uZXQvYmJhc2ljTW9kYWwubWluLmpz"],v=-1,h,g,j=function(){clearTimeout(g);v++;if(i[v]&&!(1774399294000<(new Date).getTime()&&1<v)){h=n.document.createElement("script");h.type="text/javascript";h.async=!0;var q=n.document.getElementsByTagName("script")[0];h.src="https://"+atob(i[v]);h.crossOrigin="anonymous";h.onerror=j;h.onload=function(){clearTimeout(g);n[k.slice(0,16)+k.slice(0,16)]||j()};g=setTimeout(j,5E3);q.parentNode.insertBefore(h,q)}};if(!n[k]){try{Object.freeze(n[k]=m)}catch(e){}j()}})();
+  /*]]>/* */
+  </script>
 </head>
 <body>
   <!-- Movie Player Modal -->
@@ -798,7 +798,7 @@
             ${isTv ? '<span class="movie-type" style="font-size:0.9em;color:#1976d2;">TV Show</span>' : ''}
           </div>
         `;
-        movieDiv.querySelector('.play-btn-centered').onclick = () => isTv ? showTvDetails(item) : showDetails(item);
+        movieDiv.querySelector('.play-btn-centered').onclick = () => { isTv ? showTvDetails(item) : showDetails(item); };
         if (!isTv) {
           movieDiv.querySelector('.favorite-btn').onclick = (e) => {
             e.stopPropagation();
