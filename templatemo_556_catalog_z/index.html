@@ -445,3 +445,617 @@
   </div>
 
   <div class="container-fluid tm-container-content tm-mt-60">
+<div id="recommendations-section" style="display:none;">
+      <h5 style="color:#fff;margin:0.8rem 0.5rem;">Recommended</h5>
+      <div id="recommendations-list"></div>
+    </div>
+    <div id="recently-viewed-section" style="display:none;">
+      <h5 style="color:#fff;margin:0.8rem 0.5rem;">Recently Viewed</h5>
+      <div id="recently-viewed-list"></div>
+    </div>
+    <div class="row mb-3">
+      <h2 class="col-12 tm-text-primary" id="section-title">Trending Movies</h2>
+    </div>
+    <div class="row mb-3">
+      <form class="d-flex tm-search-form category-search-form" id="category-search-form" autocomplete="off" style="max-width:500px;margin:0 auto;">
+        <input class="form-control tm-search-input" type="search" id="category-search-input" placeholder="Search this category..." aria-label="Search category">
+        <button class="btn tm-search-btn" type="submit"><i class="fas fa-search"></i></button>
+      </form>
+      <div id="filter-panel" style="max-width:500px;margin:0.5rem auto;">
+        <select id="filter-genre"><option value="">All Genres</option></select>
+        <select id="filter-year"><option value="">All Years</option></select>
+        <button class="share-btn" onclick="applyFilters()">Apply</button>
+      </div>
+    </div>
+    <div class="row tm-mb-90" id="movie-list"></div>
+    <div id="infinite-loader" style="display:none;"><div class="spinner"></div></div>
+  </div>
+
+  <footer class="tm-bg-gray pt-4 pb-2 tm-text-gray tm-footer">
+    <div class="container-fluid tm-container-small">
+      <div class="row">
+        <div class="col-lg-6 col-md-12 px-4 mb-4">
+          <h3 class="tm-text-primary mb-3">About MovieDck</h3>
+          <p>MovieDck is a free movie & TV browser using TMDB, with favorites, watchlists, and more. Built for fun.</p>
+        </div>
+        <div class="col-lg-3 col-md-6 px-4 mb-4">
+          <h3 class="tm-text-primary mb-3">Links</h3>
+          <ul class="tm-footer-links pl-0">
+            <li><a href="#">About</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a href="#">Privacy</a></li>
+          </ul>
+        </div>
+        <div class="col-lg-3 col-md-6 px-4 mb-4">
+          <ul class="tm-social-links d-flex justify-content-end">
+            <li><a href="https://facebook.com"><i class="fab fa-facebook"></i></a></li>
+            <li><a href="https://twitter.com"><i class="fab fa-twitter"></i></a></li>
+            <li><a href="https://instagram.com"><i class="fab fa-instagram"></i></a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-lg-12 px-4">
+          Copyright 2025 MovieDck Project.
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script defer src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js"></script>
+  <script>
+    const apiKey = '40f1982842db35042e8561b13b38d492';
+    const imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
+    const defaultPoster = 'https://via.placeholder.com/500x750?text=No+Poster';
+    let currentPage = 1;
+    let totalPages = 1;
+    let currentMode = 'popular';
+    let currentQuery = '';
+    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    let watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+    let recentlyViewed = JSON.parse(localStorage.getItem('recently_viewed') || '[]');
+    let progress = JSON.parse(localStorage.getItem('progress') || '{}');
+    let categoryItems = [];
+    let isLoading = false;
+    let reachedEnd = false;
+    let lastModalMovie = null;
+
+    function isMobile() {
+      return window.innerWidth <= 767.98;
+    }
+
+    function showError(message) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'error-state';
+      errorDiv.textContent = message;
+      document.getElementById('movie-list').appendChild(errorDiv);
+      setTimeout(() => errorDiv.remove(), 5000);
+    }
+
+    function isFavorite(id, media_type) {
+      return favorites.some(f => f.id === id && f.media_type === media_type);
+    }
+    function isWatchlisted(id, media_type) {
+      return watchlist.some(w => w.id === id && w.media_type === media_type);
+    }
+    function toggleFavorite(id, media_type) {
+      if (isFavorite(id, media_type)) {
+        favorites = favorites.filter(f => f.id !== id || f.media_type !== media_type);
+      } else {
+        favorites.push({ id, media_type });
+      }
+      localStorage.setItem('favorites', JSON.stringify(favorites));
+      updateFavoriteButtons(id, media_type);
+      if (currentMode === 'favorites') renderFavorites();
+    }
+    function toggleWatchlist(id, media_type) {
+      if (isWatchlisted(id, media_type)) {
+        watchlist = watchlist.filter(w => w.id !== id || w.media_type !== media_type);
+      } else {
+        watchlist.push({ id, media_type });
+      }
+      localStorage.setItem('watchlist', JSON.stringify(watchlist));
+      updateWatchlistButtons(id, media_type);
+      if (currentMode === 'watchlist') renderWatchlist();
+    }
+    function updateFavoriteButtons(id, media_type) {
+      document.querySelectorAll('.favorite-btn').forEach(btn => {
+        const parent = btn.closest('.movie-poster-wrapper');
+        if ((parent && parent.dataset.media === `${media_type}/${id}`) || btn.id === `${media_type}-favorite-btn`) {
+          btn.classList.toggle('favorited', isFavorite(id, media_type));
+        }
+      });
+    }
+    function updateWatchlistButtons(id, media_type) {
+      document.querySelectorAll('.watchlist-btn').forEach(btn => {
+        const parent = btn.closest('.movie-poster-wrapper');
+        if ((parent && parent.dataset.media === `${media_type}/${id}`) || btn.id === `${media_type}-watchlist-btn`) {
+          btn.classList.toggle('watchlisted', isWatchlisted(id, media_type));
+        }
+      });
+    }
+    function saveProgress(tvId, season, episode) {
+      progress[tvId] = { season, episode };
+      localStorage.setItem('progress', JSON.stringify(progress));
+    }
+
+    function addRecentlyViewed(item) {
+      const isTv = item.media_type === 'tv' || (item.name && !item.title);
+      const mediaType = isTv ? 'tv' : 'movie';
+      recentlyViewed = recentlyViewed.filter(m => m.id !== item.id || m.media_type !== mediaType);
+      recentlyViewed.unshift({
+        id: item.id,
+        title: item.title || item.name,
+        poster_path: item.poster_path,
+        release_date: item.release_date || item.first_air_date,
+        media_type: mediaType
+      });
+      if (recentlyViewed.length > 10) recentlyViewed = recentlyViewed.slice(0, 10);
+      localStorage.setItem('recently_viewed', JSON.stringify(recentlyViewed));
+      renderRecentlyViewed();
+    }
+
+    function renderFavorites() {
+      document.getElementById('movie-list').innerHTML = '';
+      if (!favorites.length) {
+        document.getElementById('movie-list').innerHTML = '<div class="empty-state">No favorites yet.</div>';
+        return;
+      }
+      Promise.all(favorites.map(item =>
+        fetch(`https://api.themoviedb.org/3/${item.media_type}/${item.id}?api_key=${apiKey}`)
+          .then(r => r.json())
+          .catch(() => null)
+      )).then(items => {
+        categoryItems = items.filter(i => i);
+        renderMovies(categoryItems, true);
+      });
+    }
+
+    function renderWatchlist() {
+      document.getElementById('movie-list').innerHTML = '';
+      if (!watchlist.length) {
+        document.getElementById('movie-list').innerHTML = '<div class="empty-state">No watchlist items.</div>';
+        return;
+      }
+      Promise.all(watchlist.map(item =>
+        fetch(`https://api.themoviedb.org/3/${item.media_type}/${item.id}?api_key=${apiKey}`)
+          .then(r => r.json())
+          .catch(() => null)
+      )).then(items => {
+        categoryItems = items.filter(i => i);
+        renderMovies(categoryItems, true);
+      });
+    }
+
+    function renderRecentlyViewed() {
+      const list = document.getElementById('recently-viewed-list');
+      const section = document.getElementById('recently-viewed-section');
+      if (!recentlyViewed.length) {
+        section.style.display = 'none';
+        return;
+      }
+      section.style.display = 'block';
+      list.innerHTML = '';
+      recentlyViewed.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'movie-col';
+        div.innerHTML = `
+          <div class="movie-poster-wrapper" tabindex="0">
+            <img src="${item.poster_path ? imageBaseUrl + item.poster_path : defaultPoster}" alt="${item.title}" class="img-fluid movie-poster-img">
+          </div>
+          <div class="movie-metadata">
+            <span class="movie-title">${item.title}</span>
+          </div>
+        `;
+        div.onclick = () => {
+          fetch(`https://api.themoviedb.org/3/${item.media_type}/${item.id}?api_key=${apiKey}`)
+            .then(r => r.json())
+            .then(data => item.media_type === 'tv' ? showTvDetails(data) : showDetails(data));
+        };
+        list.appendChild(div);
+      });
+    }
+
+    async function fetchMoviesInf(page) {
+      console.log(`Fetching movies: mode=${currentMode}, page=${page}, query=${currentQuery}`);
+      if (isLoading || reachedEnd) return [];
+      const cacheKey = `${currentMode}_${page}_${currentQuery}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const data = JSON.parse(cached);
+          if (data.results) return data.results;
+        } catch (e) {
+          localStorage.removeItem(cacheKey);
+        }
+      }
+      let url = '';
+      if (currentMode === 'search' && currentQuery) {
+        url = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`;
+      } else if (currentMode === 'anime') {
+        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
+      } else if (currentMode === 'tagalog') {
+        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_original_language=tl&sort_by=popularity.desc&page=${page}`;
+      } else if (currentMode === 'tv') {
+        url = `https://api.themoviedb.org/3/trending/tv/day?api_key=${apiKey}&page=${page}`;
+      } else if (currentMode === 'netflix') {
+        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`;
+      } else {
+        url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${apiKey}&page=${page}`;
+      }
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        totalPages = data.total_pages || 1;
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+        return data.results || [];
+      } catch (e) {
+        console.error('Fetch error:', e);
+        showError('Failed to load movies. Check your connection.');
+        return [];
+      }
+    }
+
+    function renderMovies(items, clear = false, target = document.getElementById('movie-list')) {
+      console.log(`Rendering ${items.length} movies`);
+      if (clear) target.innerHTML = '';
+      if (!items.length) {
+        target.innerHTML = '<div class="empty-state">No items found.</div>';
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      items.forEach(item => {
+        const isTv = item.media_type === 'tv' || (item.name && !item.title);
+        const mediaType = isTv ? 'tv' : 'movie';
+        const div = document.createElement('div');
+        div.className = 'movie-col';
+        div.innerHTML = `
+          <div class="movie-poster-wrapper" data-media="${mediaType}/${item.id}">
+            <img src="${item.poster_path ? imageBaseUrl + item.poster_path : defaultPoster}" alt="${isTv ? item.name : item.title}" class="img-fluid movie-poster-img">
+            <button class="play-btn-centered" title="${isTv ? 'View TV Show' : 'Play Movie'}"><i class="fas fa-${isTv ? 'tv' : 'play'}"></i></button>
+            <button class="favorite-btn${isFavorite(item.id, mediaType) ? ' favorited' : ''}" title="Add to favorites"><i class="fas fa-heart"></i></button>
+            <button class="watchlist-btn${isWatchlisted(item.id, mediaType) ? ' watchlisted' : ''}" title="Add to watchlist"><i class="fas fa-bookmark"></i></button>
+          </div>
+          <div class="movie-metadata">
+            <span class="movie-title">${isTv ? item.name : item.title}</span>
+            <span class="movie-year">${(isTv ? item.first_air_date : item.release_date)?.slice(0, 4) || ''}</span>
+          </div>
+        `;
+        fragment.appendChild(div);
+      });
+      target.appendChild(fragment);
+    }
+
+    async function loadMoreMovies(clear = false) {
+      if (isLoading || reachedEnd) return;
+      isLoading = true;
+      document.getElementById('infinite-loader').style.display = 'block';
+      const items = await fetchMoviesInf(currentPage);
+      if (items.length) {
+        if (clear) categoryItems = items;
+        else categoryItems = [...categoryItems, ...items];
+        renderMovies(items, clear);
+        currentPage++;
+        if (currentPage > totalPages) reachedEnd = true;
+      } else if (clear) {
+        document.getElementById('movie-list').innerHTML = '<div class="empty-state">No movies found.</div>';
+        reachedEnd = true;
+      }
+      isLoading = false;
+      document.getElementById('infinite-loader').style.display = 'none';
+    }
+
+    function handleInfiniteScroll() {
+      if (isLoading || reachedEnd || ['favorites', 'watchlist'].includes(currentMode)) return;
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      const scrolled = window.scrollY;
+      if (scrollable - scrolled < 400) {
+        console.log('Triggering loadMoreMovies');
+        loadMoreMovies();
+      }
+    }
+
+    async function showDetails(movie) {
+      lastModalMovie = movie;
+      addRecentlyViewed(movie);
+      document.getElementById('modal-content-movie').style.display = 'block';
+      document.getElementById('modal-content-tv').style.display = 'none';
+      document.getElementById('modal').style.display = 'flex';
+      document.getElementById('modal-title').textContent = movie.title;
+      document.getElementById('modal-description').textContent = movie.overview || 'No description available.';
+      document.getElementById('modal-image').src = movie.poster_path ? imageBaseUrl + movie.poster_path : defaultPoster;
+      document.getElementById('modal-rating').innerHTML = getStars(movie.vote_average) + ` (${movie.vote_average?.toFixed(1) || 'N/A'})`;
+      document.getElementById('modal-genres').innerHTML = (movie.genres || movie.genre_ids?.map(id => ({ name: 'Genre' }))).map(g => `<span class="chip">${g.name}</span>`).join(' ');
+      document.getElementById('modal-cast').textContent = 'Loading cast...';
+      document.getElementById('modal-crew').textContent = '';
+      document.getElementById('modal-trailer').innerHTML = '';
+      document.getElementById('similar-movies').innerHTML = '';
+      document.getElementById('movie-favorite-btn').classList.toggle('favorited', isFavorite(movie.id, 'movie'));
+      document.getElementById('movie-watchlist-btn').classList.toggle('watchlisted', isWatchlisted(movie.id, 'movie'));
+      document.getElementById('movie-favorite-btn').onclick = () => toggleFavorite(movie.id, 'movie');
+      document.getElementById('movie-watchlist-btn').onclick = () => toggleWatchlist(movie.id, 'movie');
+      try {
+        const credits = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/credits?api_key=${apiKey}`).then(r => r.json());
+        document.getElementById('modal-cast').innerHTML = credits.cast.slice(0, 5).map(c => c.name).join(', ') || 'No cast info.';
+        const director = credits.crew.find(c => c.job === 'Director');
+        if (director) document.getElementById('modal-crew').innerHTML = `<strong>Director:</strong> ${director.name}`;
+      } catch (e) {
+        document.getElementById('modal-cast').textContent = 'Cast unavailable.';
+      }
+      try {
+        const videos = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${apiKey}`).then(r => r.json());
+        const trailer = videos.results.find(v => v.site === 'YouTube' && v.type === 'Trailer');
+        if (trailer) document.getElementById('modal-trailer').innerHTML = `<a href="https://youtube.com/watch?v=${trailer.key}" target="_blank">Watch Trailer</a>`;
+      } catch (e) {}
+      document.getElementById('server').value = 'player.videasy.net';
+      changeServer(true);
+    }
+
+    function getStars(vote) {
+      const stars = Math.round((vote || 0) / 2);
+      return '★'.repeat(stars) + '☆'.repeat(5 - stars);
+    }
+
+    function changeServer(auto = false) {
+      if (!lastModalMovie) return;
+      const server = document.getElementById('server').value;
+      const iframe = document.getElementById('modal-video');
+      const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
+      let embedURL = '';
+      if (server === 'player.videasy.net') {
+        embedURL = `https://player.videasy.net/movie/${lastModalMovie.id}?autoplay=1`;
+      } else if (server === 'vidsrc.cc') {
+        embedURL = `https://vidsrc.cc/api/embed/movie/${lastModalMovie.id}?autoplay=1`;
+      } else if (server === 'vidsrc.me') {
+        embedURL = `https://vidsrc.net/embed/movie/?tmdb=${lastModalMovie.id}&autoplay=1`;
+      } else {
+        embedURL = `https://vidsrc.to/embed/movie/${lastModalMovie.id}?autoplay=1`;
+      }
+      iframe.src = embedURL;
+      iframe.onload = () => {
+        playOverlay.style.display = 'none';
+      };
+      iframe.onerror = () => {
+        playOverlay.style.display = 'block';
+        showError('Server unavailable. Try another server.');
+      };
+    }
+
+    function triggerIframePlay(iframeId) {
+      const iframe = document.getElementById(iframeId);
+      try {
+        iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+        iframe.parentElement.querySelector('.iframe-play-overlay').style.display = 'none';
+      } catch (e) {
+        showError('Playback failed. Try another server.');
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+      document.getElementById('modal-video').src = '';
+      document.getElementById('tv-episode-player').src = '';
+    }
+
+    async function showTvDetails(tv) {
+      document.getElementById('modal-content-movie').style.display = 'none';
+      document.getElementById('modal-content-tv').style.display = 'block';
+      document.getElementById('modal').style.display = 'flex';
+      addRecentlyViewed(tv);
+      const tvInfo = await fetch(`https://api.themoviedb.org/3/tv/${tv.id}?api_key=${apiKey}`).then(r => r.json());
+      document.getElementById('tv-modal-title').textContent = tvInfo.name;
+      document.getElementById('tv-modal-image').src = tvInfo.poster_path ? imageBaseUrl + tvInfo.poster_path : defaultPoster;
+      document.getElementById('tv-modal-description').textContent = tvInfo.overview || 'No description.';
+      document.getElementById('tv-modal-air-date').textContent = tvInfo.first_air_date || 'N/A';
+      document.getElementById('tv-modal-total-seasons').textContent = tvInfo.number_of_seasons || 'N/A';
+      document.getElementById('tv-modal-genres').innerHTML = (tvInfo.genres || []).map(g => `<span class="chip">${g.name}</span>`).join(' ');
+      document.getElementById('tv-favorite-btn').classList.toggle('favorited', isFavorite(tvInfo.id, 'tv'));
+      document.getElementById('tv-watchlist-btn').classList.toggle('watchlisted', isWatchlisted(tvInfo.id, 'tv'));
+      document.getElementById('tv-favorite-btn').onclick = () => toggleFavorite(tvInfo.id, 'tv');
+      document.getElementById('tv-watchlist-btn').onclick = () => toggleWatchlist(tvInfo.id, 'tv');
+      const seasonsList = document.getElementById('tv-modal-seasons-list');
+      seasonsList.innerHTML = '';
+      for (const season of tvInfo.seasons) {
+        const seasonDiv = document.createElement('div');
+        seasonDiv.className = 'season-block';
+        seasonDiv.innerHTML = `<div class="season-header">${season.name}</div><div class="episodes-list" style="display:none;"></div>`;
+        seasonDiv.querySelector('.season-header').onclick = async () => {
+          const epList = seasonDiv.querySelector('.episodes-list');
+          if (epList.style.display === 'none') {
+            const data = await fetch(`https://api.themoviedb.org/3/tv/${tv.id}/season/${season.season_number}?api_key=${apiKey}`).then(r => r.json());
+            epList.innerHTML = data.episodes.map(ep => `
+              <div class="episode-block">
+                <span>Ep ${ep.episode_number}: ${ep.name}</span>
+                <button class="tv-episode-play-btn" onclick="playTvEpisode('${tv.id}', '${season.season_number}', '${ep.episode_number}')">Play</button>
+              </div>
+            `).join('');
+            epList.style.display = 'block';
+          } else {
+            epList.style.display = 'none';
+          }
+        };
+        seasonsList.appendChild(seasonDiv);
+      }
+    }
+
+    window.playTvEpisode = function(tvId, seasonNum, episodeNum) {
+      const iframe = document.getElementById('tv-episode-player');
+      const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
+      iframe.style.display = 'block';
+      iframe.src = `https://player.videasy.net/tv/${tvId}/${seasonNum}/${episodeNum}?autoplay=1`;
+      saveProgress(tvId, seasonNum, episodeNum);
+      iframe.onload = () => {
+        playOverlay.style.display = 'none';
+      };
+    }
+
+    function closeTvModal() {
+      closeModal();
+    }
+
+    function switchMode(newMode) {
+      console.log(`Switching to mode: ${newMode}`);
+      if (currentMode === newMode && !currentQuery) return;
+      currentMode = newMode;
+      currentQuery = '';
+      currentPage = 1;
+      reachedEnd = false;
+      isLoading = false;
+      const sectionTitle = document.getElementById('section-title');
+      const categorySearchInput = document.getElementById('category-search-input');
+      document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+      if (newMode === 'anime') {
+        sectionTitle.textContent = 'Trending Anime';
+        document.getElementById('nav-anime').classList.add('active');
+        categorySearchInput.placeholder = 'Search Anime...';
+      } else if (newMode === 'tagalog') {
+        sectionTitle.textContent = 'Trending Tagalog';
+        document.getElementById('nav-tagalog').classList.add('active');
+        categorySearchInput.placeholder = 'Search Tagalog...';
+      } else if (newMode === 'favorites') {
+        sectionTitle.textContent = 'Favorites';
+        document.getElementById('nav-favorites').classList.add('active');
+        categorySearchInput.placeholder = 'Search Favorites...';
+      } else if (newMode === 'watchlist') {
+        sectionTitle.textContent = 'Watchlist';
+        document.getElementById('nav-watchlist').classList.add('active');
+        categorySearchInput.placeholder = 'Search Watchlist...';
+      } else if (newMode === 'tv') {
+        sectionTitle.textContent = 'Trending TV';
+        document.getElementById('nav-tvshows').classList.add('active');
+        categorySearchInput.placeholder = 'Search TV Shows...';
+      } else if (newMode === 'netflix') {
+        sectionTitle.textContent = 'Trending Netflix';
+        document.getElementById('nav-netflix').classList.add('active');
+        categorySearchInput.placeholder = 'Search Netflix...';
+      } else {
+        sectionTitle.textContent = 'Trending Movies';
+        document.getElementById('nav-movies').classList.add('active');
+        categorySearchInput.placeholder = 'Search Movies...';
+      }
+      document.getElementById('category-search-form').style.display = 'flex';
+      document.getElementById('filter-panel').style.display = 'block';
+      document.getElementById('movie-list').innerHTML = '';
+      if (newMode === 'favorites') renderFavorites();
+      else if (newMode === 'watchlist') renderWatchlist();
+      else loadMoreMovies(true);
+    }
+
+    async function initFilters() {
+      try {
+        const genres = await fetch(`https://api.themoviedb.org/3/genre/movie/list?api_key=${apiKey}`).then(r => r.json());
+        document.getElementById('filter-genre').innerHTML += genres.genres.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+        const years = Array.from({length: new Date().getFullYear() - 1900 + 1}, (_, i) => new Date().getFullYear() - i);
+        document.getElementById('filter-year').innerHTML += years.map(y => `<option value="${y}">${y}</option>`).join('');
+      } catch (e) {
+        console.error('Filter init error:', e);
+      }
+    }
+
+    window.applyFilters = async () => {
+      const genre = document.getElementById('filter-genre').value;
+      const year = document.getElementById('filter-year').value;
+      let url = `https://api.themoviedb.org/3/discover/${currentMode === 'tv' ? 'tv' : 'movie'}?api_key=${apiKey}&sort_by=popularity.desc`;
+      if (genre) url += `&with_genres=${genre}`;
+      if (year) url += `&primary_release_year=${year}`;
+      if (currentMode === 'anime') url += '&with_original_language=ja';
+      else if (currentMode === 'tagalog') url += '&with_original_language=tl';
+      else if (currentMode === 'netflix') url += '&with_watch_providers=8&watch_region=US';
+      try {
+        const data = await fetch(url).then(r => r.json());
+        categoryItems = data.results || [];
+        renderMovies(categoryItems, true);
+      } catch (e) {
+        showError('Failed to apply filters.');
+      }
+    };
+
+    window.shareMovie = () => {
+      if (!lastModalMovie) return;
+      const title = lastModalMovie.title;
+      const url = `https://www.themoviedb.org/movie/${lastModalMovie.id}`;
+      if (navigator.share) {
+        navigator.share({ title: `Check out ${title}!`, url });
+      } else {
+        navigator.clipboard.writeText(`${title}: ${url}`).then(() => alert('Link copied!'));
+      }
+    };
+
+    window.shareTvShow = () => {
+      const title = document.getElementById('tv-modal-title').textContent;
+      const url = `https://www.themoviedb.org/tv/${document.getElementById('tv-modal-title').dataset.id}`;
+      if (navigator.share) {
+        navigator.share({ title: `Check out ${title}!`, url });
+      } else {
+        navigator.clipboard.writeText(`${title}: ${url}`).then(() => alert('Link copied!'));
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('Initializing page');
+      document.getElementById('nav-movies').onclick = e => { e.preventDefault(); switchMode('popular'); };
+      document.getElementById('nav-tvshows').onclick = e => { e.preventDefault(); switchMode('tv'); };
+      document.getElementById('nav-anime').onclick = e => { e.preventDefault(); switchMode('anime'); };
+      document.getElementById('nav-tagalog').onclick = e => { e.preventDefault(); switchMode('tagalog'); };
+      document.getElementById('nav-netflix').onclick = e => { e.preventDefault(); switchMode('netflix'); };
+      document.getElementById('nav-favorites').onclick = e => { e.preventDefault(); switchMode('favorites'); };
+      document.getElementById('nav-watchlist').onclick = e => { e.preventDefault(); switchMode('watchlist'); };
+
+      document.getElementById('movie-search-form').onsubmit = e => {
+        e.preventDefault();
+        const query = document.getElementById('movie-search-input').value.trim();
+        if (query) {
+          currentQuery = query;
+          currentMode = 'search';
+          document.getElementById('section-title').textContent = `Search: ${query}`;
+          loadMoreMovies(true);
+        }
+      };
+
+      document.getElementById('category-search-form').onsubmit = e => {
+        e.preventDefault();
+        const query = document.getElementById('category-search-input').value.trim();
+        if (currentMode === 'favorites') {
+          categoryItems = favorites.filter(f => f.title?.toLowerCase().includes(query.toLowerCase()));
+          renderMovies(categoryItems, true);
+        } else if (currentMode === 'watchlist') {
+          categoryItems = watchlist.filter(w => w.title?.toLowerCase().includes(query.toLowerCase()));
+          renderMovies(categoryItems, true);
+        } else {
+          currentQuery = query;
+          currentMode = 'search';
+          document.getElementById('section-title').textContent = `Search: ${query}`;
+          loadMoreMovies(true);
+        }
+      };
+
+      document.getElementById('movie-list').addEventListener('click', e => {
+        const wrapper = e.target.closest('.movie-poster-wrapper');
+        if (wrapper) {
+          const [mediaType, id] = wrapper.dataset.media.split('/');
+          fetch(`https://api.themoviedb.org/3/${mediaType}/${id}?api_key=${apiKey}`)
+            .then(r => r.json())
+            .then(data => mediaType === 'tv' ? showTvDetails(data) : showDetails(data));
+        }
+        if (e.target.closest('.favorite-btn')) {
+          const [mediaType, id] = e.target.closest('.movie-poster-wrapper').dataset.media.split('/');
+          toggleFavorite(parseInt(id), mediaType);
+        }
+        if (e.target.closest('.watchlist-btn')) {
+          const [mediaType, id] = e.target.closest('.movie-poster-wrapper').dataset.media.split('/');
+          toggleWatchlist(parseInt(id), mediaType);
+        }
+      });
+
+      window.addEventListener('scroll', handleInfiniteScroll);
+
+      initFilters();
+      renderRecentlyViewed();
+      switchMode('popular');
+    });
+  </script>
+</body>
+</html>
