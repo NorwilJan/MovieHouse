@@ -12,6 +12,8 @@
       background: #15191e;
       color: #eee;
       font-family: 'Montserrat', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
     }
     .container-fluid, .tm-container-content {
       background: #15191e !important;
@@ -23,12 +25,14 @@
     }
     .tm-hero {
       background: #1a1f25;
+      padding: 1rem 0;
     }
     .navbar-brand {
       display: flex;
       align-items: center;
       gap: 15px;
       padding: 0.5em 0;
+      width: 100%;
     }
     .navbar-brand .logo-text {
       font-family: 'DM Serif Display', 'Montserrat', Arial, sans-serif;
@@ -38,18 +42,11 @@
       color: #fff;
       text-shadow: 0 2px 12px #1976d2a0, 0 1px 2px #1a2028;
       line-height: 1.1;
+      margin: 0 auto;
     }
     @media (max-width: 991.98px) {
       .navbar-brand .logo-text {
         font-size: 1.6rem;
-      }
-      .navbar-collapse {
-        background: #15191e;
-        padding: 0.8rem;
-      }
-      .nav-link {
-        padding: 0.4rem 0.8rem;
-        font-size: 1rem;
       }
     }
     .movie-poster-img {
@@ -93,7 +90,7 @@
       background: #2196f3 !important;
       transform: translate(-50%, -50%) scale(1.1);
     }
-    .toggle-btn {
+    .toggle-btn, .favorites-btn, .playlist-btn {
       background: #1976d2;
       color: #fff;
       border: none;
@@ -103,10 +100,10 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-    .toggle-btn.active {
+    .toggle-btn.active, .favorites-btn.active, .playlist-btn.active {
       background: #2196f3;
     }
-    .toggle-btn:hover {
+    .toggle-btn:hover, .favorites-btn:hover, .playlist-btn:hover {
       background: #2196f3;
     }
     .modal {
@@ -217,6 +214,28 @@
     @media (max-width: 767.98px) {
       .movie-col { width: 50%; }
     }
+    #favorites-grid, #playlist-grid {
+      margin-top: 1rem;
+    }
+    .favorites-btn, .playlist-btn {
+      margin-left: 0;
+    }
+    #player-container {
+      display: none;
+      width: 100%;
+      height: 0;
+      padding-bottom: 56.25%;
+      position: relative;
+      margin: 1rem 0;
+    }
+    #player-iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
   </style>
 </head>
 <body>
@@ -247,11 +266,18 @@
         <button class="toggle-btn" data-mode="tagalog">Tagalog</button>
         <button class="toggle-btn" data-mode="netflix_movies">Netflix Movies</button>
         <button class="toggle-btn" data-mode="netflix_tv">Netflix TV Shows</button>
+        <button class="favorites-btn" id="favorites-btn">Favorites</button>
+        <button class="playlist-btn" id="playlist-btn">Playlists</button>
         <button class="share-btn" id="home-btn">Return to Home</button>
       </div>
     </div>
     <div id="movie-grid" class="row"></div>
+    <div id="favorites-grid" class="row" style="display:none;"></div>
+    <div id="playlist-grid" class="row" style="display:none;"></div>
     <div id="loading" style="display:none;"><div class="spin"></div></div>
+    <div id="player-container">
+      <iframe id="player-iframe" src="" title="Movie Player" allowfullscreen></iframe>
+    </div>
     <button id="scroll-top" style="display:none;"><i class="fas fa-arrow-up"></i></button>
     <div id="modal" class="modal" style="display:none;">
       <div class="modal-content">
@@ -263,6 +289,8 @@
           <p><strong>Release:</strong> <span id="modal-release"></span></p>
           <p><strong>Rating:</strong> <span id="modal-rating"></span></p>
           <button class="play-btn-centered" id="play-btn" style="position: static; margin-top: 1rem;">Play</button>
+          <button class="play-btn-centered" id="favorite-btn" style="position: static; margin-top: 0.5rem; background: #ff4444;">Favorite</button>
+          <button class="play-btn-centered" id="add-to-playlist-btn" style="position: static; margin-top: 0.5rem; background: #44ff44;">Add to Playlist</button>
         </div>
       </div>
     </div>
@@ -272,7 +300,7 @@
     <div class="container-fluid tm-container-small">
       <div class="row">
         <div class="col-lg-12 px-4 mb-4">
-          <p>© 2025 MovieDck Project - Last updated: 02:16 PM PST, Thursday, June 19, 2025</p>
+          <p>© 2025 MovieDck Project - Last updated: 02:22 PM PST, Thursday, June 19, 2025</p>
         </div>
       </div>
     </div>
@@ -292,6 +320,14 @@
     let loading = false;
     let done = false;
     let movies = [];
+    let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+    let playlists = JSON.parse(localStorage.getItem('playlists')) || { current: [] };
+    const servers = [
+      'https://vidsrc.to/embed/',
+      'https://player.videasy.net/embed/',
+      'https://vidcloud.co/embed/'
+    ];
+    let currentServerIndex = 0;
 
     function log(msg) {
       console.log(`[MovieDck ${new Date().toISOString().slice(11, 19)}] ${msg}`);
@@ -334,20 +370,20 @@
           url = `https://api.themoviedb.org/3/trending/tv/day?api_key=${apiKey}&page=${pageNum}`;
           break;
         case 'anime':
-          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_genres=16&sort_by=popularity.desc&page=${pageNum}`; // Anime genre ID: 16
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_genres=16&sort_by=popularity.desc&page=${pageNum}`;
           break;
         case 'tagalog':
-          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_original_language=tl&sort_by=popularity.desc&page=${pageNum}`; // Tagalog language code: tl
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_original_language=tl&sort_by=popularity.desc&page=${pageNum}`;
           break;
         case 'netflix_movies':
-          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_networks=213&sort_by=popularity.desc&page=${pageNum}`; // Netflix network ID: 213 (approximate)
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_networks=213&sort_by=popularity.desc&page=${pageNum}`;
           break;
         case 'netflix_tv':
-          url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_networks=213&sort_by=popularity.desc&page=${pageNum}`; // Netflix TV shows
+          url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_networks=213&sort_by=popularity.desc&page=${pageNum}`;
           break;
       }
       if (mode === 'search' && query) {
-        url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}&page=${pageNum}&include_adult=false`;
+        url = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(query)}&page=${pageNum}&include_adult=false`;
       }
       try {
         log(`API call: ${url}`);
@@ -373,11 +409,11 @@
       }
     }
 
-    function renderMovies(items, clear = false) {
-      log(`Rendering ${items.length} items`);
-      const grid = document.getElementById('movie-grid');
+    function renderMovies(items, gridId, clear = false) {
+      log(`Rendering ${items.length} items to ${gridId}`);
+      const grid = document.getElementById(gridId);
       if (!grid) {
-        log('Error: #movie-grid not found');
+        log(`Error: #${gridId} not found`);
         return;
       }
       if (clear) grid.innerHTML = '';
@@ -413,7 +449,7 @@
       if (items.length) {
         if (clear) movies = items;
         else movies = [...movies, ...items];
-        renderMovies(items, clear);
+        renderMovies(items, 'movie-grid', clear);
         page++;
         if (page > maxPages) {
           done = true;
@@ -463,6 +499,8 @@
         document.getElementById('modal-release').textContent = item.release_date || item.first_air_date || 'N/A';
         document.getElementById('modal-rating').textContent = `${(item.vote_average || 0).toFixed(1)}/10`;
         document.getElementById('modal').style.display = 'flex';
+        document.getElementById('favorite-btn').dataset.id = itemId;
+        document.getElementById('add-to-playlist-btn').dataset.id = itemId;
       } catch (e) {
         log(`Modal fetch error: ${e.message}`);
         showError('Failed to load item details.');
@@ -471,10 +509,101 @@
 
     function closeModal() {
       document.getElementById('modal').style.display = 'none';
+      document.getElementById('player-container').style.display = 'none';
     }
 
-    function showPlayMessage() {
-      alert('Video playback is not yet implemented. Stay tuned for updates!');
+    function toggleFavorite(itemId) {
+      const index = favorites.findIndex(f => f.id === itemId);
+      if (index === -1) {
+        fetch(`https://api.themoviedb.org/3/movie/${itemId}?api_key=${apiKey}`)
+          .then(res => res.json())
+          .then(item => {
+            favorites.push({ id: itemId, ...item });
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+            log(`Added to favorites: ${item.title || item.name}`);
+          });
+      } else {
+        favorites.splice(index, 1);
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+        log(`Removed from favorites: ${favorites[index]?.title || favorites[index]?.name}`);
+      }
+      renderFavorites();
+    }
+
+    function renderFavorites() {
+      document.getElementById('movie-grid').style.display = 'none';
+      document.getElementById('playlist-grid').style.display = 'none';
+      document.getElementById('favorites-grid').style.display = 'block';
+      renderMovies(favorites, 'favorites-grid', true);
+      document.getElementById('section-title').textContent = 'Favorites';
+    }
+
+    function addToPlaylist(itemId) {
+      fetch(`https://api.themoviedb.org/3/movie/${itemId}?api_key=${apiKey}`)
+        .then(res => res.json())
+        .then(item => {
+          if (!playlists.current.find(p => p.id === itemId)) {
+            playlists.current.push({ id: itemId, ...item });
+            localStorage.setItem('playlists', JSON.stringify(playlists));
+            log(`Added to playlist: ${item.title || item.name}`);
+          }
+        });
+    }
+
+    function renderPlaylist() {
+      document.getElementById('movie-grid').style.display = 'none';
+      document.getElementById('favorites-grid').style.display = 'none';
+      document.getElementById('playlist-grid').style.display = 'block';
+      renderMovies(playlists.current, 'playlist-grid', true);
+      document.getElementById('section-title').textContent = 'Current Playlist';
+    }
+
+    async function playMovie(itemId) {
+      log(`Attempting to play item ID: ${itemId}`);
+      document.getElementById('modal').style.display = 'none';
+      document.getElementById('player-container').style.display = 'block';
+      let url = `https://api.themoviedb.org/3/movie/${itemId}?api_key=${apiKey}&append_to_response=watch/providers`;
+      if (['tv', 'netflix_tv'].includes(mode)) {
+        url = `https://api.themoviedb.org/3/tv/${itemId}?api_key=${apiKey}&append_to_response=watch/providers`;
+      }
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const item = await res.json();
+        let provider = item['watch/providers']?.results?.US?.link || '';
+        if (!provider) {
+          const server = servers[currentServerIndex];
+          const iframeSrc = `${server}${itemId}`;
+          document.getElementById('player-iframe').src = iframeSrc;
+          checkPlayback(iframeSrc);
+        } else {
+          document.getElementById('player-iframe').src = provider;
+        }
+      } catch (e) {
+        log(`Play fetch error: ${e.message}`);
+        switchServer(itemId);
+      }
+    }
+
+    function checkPlayback(iframeSrc) {
+      const iframe = document.getElementById('player-iframe');
+      setTimeout(() => {
+        if (iframe.contentWindow.document.body.innerHTML.includes('404') || iframe.contentWindow.document.body.innerHTML.includes('error')) {
+          log('Playback failed, switching server');
+          switchServer(iframeSrc.split('/').pop());
+        }
+      }, 5000);
+    }
+
+    function switchServer(itemId) {
+      currentServerIndex = (currentServerIndex + 1) % servers.length;
+      if (currentServerIndex === 0) {
+        showError('No working server found.');
+        return;
+      }
+      log(`Switching to server ${servers[currentServerIndex]}`);
+      document.getElementById('player-iframe').src = `${servers[currentServerIndex]}${itemId}`;
+      checkPlayback(`${servers[currentServerIndex]}${itemId}`);
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -495,8 +624,23 @@
           done = false;
           movies = [];
           document.getElementById('section-title').textContent = `Trending ${mode.replace('_', ' ').charAt(0).toUpperCase() + mode.replace('_', ' ').slice(1)}`;
+          document.getElementById('movie-grid').style.display = 'block';
+          document.getElementById('favorites-grid').style.display = 'none';
+          document.getElementById('playlist-grid').style.display = 'none';
           loadMovies(true);
         });
+      });
+
+      document.getElementById('favorites-btn').addEventListener('click', () => {
+        document.querySelectorAll('.toggle-btn, .favorites-btn, .playlist-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('favorites-btn').classList.add('active');
+        renderFavorites();
+      });
+
+      document.getElementById('playlist-btn').addEventListener('click', () => {
+        document.querySelectorAll('.toggle-btn, .favorites-btn, .playlist-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('playlist-btn').classList.add('active');
+        renderPlaylist();
       });
 
       document.getElementById('search-form').onsubmit = e => {
@@ -522,8 +666,11 @@
         movies = [];
         document.getElementById('section-title').textContent = 'Trending Movies';
         document.getElementById('search-input').value = '';
-        document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.toggle-btn, .favorites-btn, .playlist-btn').forEach(b => b.classList.remove('active'));
         document.querySelector('[data-mode="popular"]').classList.add('active');
+        document.getElementById('movie-grid').style.display = 'block';
+        document.getElementById('favorites-grid').style.display = 'none';
+        document.getElementById('playlist-grid').style.display = 'none';
         loadMovies(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       };
@@ -542,7 +689,38 @@
         }
       });
 
-      document.getElementById('play-btn').addEventListener('click', showPlayMessage);
+      document.getElementById('favorites-grid').addEventListener('click', e => {
+        const wrapper = e.target.closest('.movie-poster-wrapper');
+        if (wrapper) {
+          const id = wrapper.dataset.id;
+          log(`Clicked favorite ID: ${id}`);
+          showModal(id);
+        }
+      });
+
+      document.getElementById('playlist-grid').addEventListener('click', e => {
+        const wrapper = e.target.closest('.movie-poster-wrapper');
+        if (wrapper) {
+          const id = wrapper.dataset.id;
+          log(`Clicked playlist ID: ${id}`);
+          showModal(id);
+        }
+      });
+
+      document.getElementById('play-btn').addEventListener('click', () => {
+        const itemId = document.getElementById('play-btn').dataset.id || document.getElementById('modal-title').dataset.id;
+        if (itemId) playMovie(itemId);
+      });
+
+      document.getElementById('favorite-btn').addEventListener('click', () => {
+        const itemId = document.getElementById('favorite-btn').dataset.id;
+        if (itemId) toggleFavorite(itemId);
+      });
+
+      document.getElementById('add-to-playlist-btn').addEventListener('click', () => {
+        const itemId = document.getElementById('add-to-playlist-btn').dataset.id;
+        if (itemId) addToPlaylist(itemId);
+      });
 
       window.addEventListener('scroll', scrollHandler);
 
