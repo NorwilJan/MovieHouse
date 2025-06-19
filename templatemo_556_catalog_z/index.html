@@ -51,13 +51,6 @@
         padding: 0.4rem 0.8rem;
         font-size: 1rem;
       }
-      .navbar-toggler {
-        border: none;
-        color: #eee;
-      }
-      .navbar-toggler i {
-        font-size: 1.4rem;
-      }
     }
     .movie-poster-img {
       background: #222;
@@ -232,14 +225,6 @@
       <a class="navbar-brand" href="index.html">
         <span class="logo-text">MovieDck</span>
       </a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <i class="fas fa-bars"></i>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav ml-auto mb-2 mb-lg-0">
-          <li class="nav-item"><a class="nav-link active" id="nav-movies" href="#">Trending</a></li>
-        </ul>
-      </div>
     </div>
   </nav>
 
@@ -260,7 +245,8 @@
         <button class="toggle-btn" data-mode="tv">TV Shows</button>
         <button class="toggle-btn" data-mode="anime">Anime</button>
         <button class="toggle-btn" data-mode="tagalog">Tagalog</button>
-        <button class="toggle-btn" data-mode="netflix">Netflix</button>
+        <button class="toggle-btn" data-mode="netflix_movies">Netflix Movies</button>
+        <button class="toggle-btn" data-mode="netflix_tv">Netflix TV Shows</button>
         <button class="share-btn" id="home-btn">Return to Home</button>
       </div>
     </div>
@@ -276,7 +262,7 @@
           <p id="modal-description"></p>
           <p><strong>Release:</strong> <span id="modal-release"></span></p>
           <p><strong>Rating:</strong> <span id="modal-rating"></span></p>
-          <button class="play-btn-centered" id="play-btn" style="position: static; margin-top: 1rem;">Play Movie</button>
+          <button class="play-btn-centered" id="play-btn" style="position: static; margin-top: 1rem;">Play</button>
         </div>
       </div>
     </div>
@@ -286,7 +272,7 @@
     <div class="container-fluid tm-container-small">
       <div class="row">
         <div class="col-lg-12 px-4 mb-4">
-          <p>© 2025 MovieDck Project - Last updated: 02:10 PM PST, Thursday, June 19, 2025</p>
+          <p>© 2025 MovieDck Project - Last updated: 02:16 PM PST, Thursday, June 19, 2025</p>
         </div>
       </div>
     </div>
@@ -318,7 +304,7 @@
     }
 
     async function fetchMovies(pageNum) {
-      log(`Fetching movies: mode=${mode}, page=${pageNum}, query=${query}`);
+      log(`Fetching content: mode=${mode}, page=${pageNum}, query=${query}`);
       if (loading || done) return [];
       loading = true;
       document.getElementById('loading').style.display = 'block';
@@ -353,8 +339,11 @@
         case 'tagalog':
           url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_original_language=tl&sort_by=popularity.desc&page=${pageNum}`; // Tagalog language code: tl
           break;
-        case 'netflix':
+        case 'netflix_movies':
           url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_networks=213&sort_by=popularity.desc&page=${pageNum}`; // Netflix network ID: 213 (approximate)
+          break;
+        case 'netflix_tv':
+          url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_networks=213&sort_by=popularity.desc&page=${pageNum}`; // Netflix TV shows
           break;
       }
       if (mode === 'search' && query) {
@@ -458,10 +447,14 @@
       document.getElementById('scroll-top').style.display = scrolled > 200 ? 'block' : 'none';
     }, 200);
 
-    async function showModal(movieId) {
-      log(`Showing modal for item ID: ${movieId}`);
+    async function showModal(itemId) {
+      log(`Showing modal for item ID: ${itemId}`);
       try {
-        const res = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${apiKey}`);
+        let url = `https://api.themoviedb.org/3/movie/${itemId}?api_key=${apiKey}`;
+        if (['tv', 'netflix_tv'].includes(mode)) {
+          url = `https://api.themoviedb.org/3/tv/${itemId}?api_key=${apiKey}`;
+        }
+        const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const item = await res.json();
         document.getElementById('modal-image').src = item.poster_path ? imgUrl + item.poster_path : noPoster;
@@ -501,7 +494,7 @@
           page = 1;
           done = false;
           movies = [];
-          document.getElementById('section-title').textContent = `Trending ${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
+          document.getElementById('section-title').textContent = `Trending ${mode.replace('_', ' ').charAt(0).toUpperCase() + mode.replace('_', ' ').slice(1)}`;
           loadMovies(true);
         });
       });
