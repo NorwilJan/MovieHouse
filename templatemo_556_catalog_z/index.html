@@ -354,67 +354,44 @@
     #category-search-form .tm-search-btn:hover, #filter-panel button:hover {
       background: #2196f3;
     }
+    .spin {
+      border: 4px solid #2196f3;
+      border-top: 4px solid transparent;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 0.8s linear infinite;
+      margin: 2rem auto;
+    }
+    #scroll-top {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #2196f3;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      font-size: 1.5em;
+      cursor: pointer;
+    }
+    #scroll-top:hover {
+      background: #1976d2;
+    }
+    @media (max-width: 767.98px) {
+      #scroll-top {
+        bottom: 10px;
+        right: 10px;
+        width: 40px;
+        height: 40px;
+        font-size: 1.2em;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="modal" id="modal">
-    <div class="modal-content" id="modal-content-movie">
-      <span class="close" onclick="closeModal()" aria-label="Close modal">×</span>
-      <div class="modal-body">
-        <img id="modal-image" src="" alt="Poster" />
-        <div class="modal-text">
-          <h2 id="modal-title"></h2>
-          <div class="stars" id="modal-rating"></div>
-          <div class="modal-genre" id="modal-genres"></div>
-          <p id="modal-description"></p>
-          <div class="modal-cast" id="modal-cast"></div>
-          <div class="modal-crew" id="modal-crew"></div>
-          <div class="modal-trailer" id="modal-trailer"></div>
-          <button class="share-btn" onclick="shareMovie()">Share</button>
-          <button class="favorite-btn" id="movie-favorite-btn" title="Add to favorites"><i class="fas fa-heart"></i></button>
-          <button class="watchlist-btn" id="movie-watchlist-btn" title="Add to watchlist"><i class="fas fa-bookmark"></i></button>
-        </div>
-      </div>
-      <div class="server-selector">
-        <label for="server">Server:</label>
-        <select id="server" onchange="changeServer()">
-          <option value="player.videasy.net">Videasy</option>
-          <option value="vidsrc.cc">Vidsrc.cc</option>
-          <option value="vidsrc.me">Vidsrc.me</option>
-          <option value="vidsrc.to">Vidsrc.to</option>
-        </select>
-      </div>
-      <div class="iframe-container">
-        <iframe id="modal-video" allowfullscreen></iframe>
-        <button class="iframe-play-overlay" onclick="triggerIframePlay('modal-video')"><i class="fas fa-play"></i></button>
-      </div>
-      <div id="similar-movies"></div>
-    </div>
-    <div class="modal-content" id="modal-content-tv" style="display:none;">
-      <span class="close" onclick="closeTvModal()" aria-label="Close modal">×</span>
-      <div class="modal-body">
-        <img id="tv-modal-image" src="" alt="Poster" />
-        <div class="modal-text">
-          <h2 id="tv-modal-title"></h2>
-          <div class="modal-genre" id="tv-modal-genres"></div>
-          <p id="tv-modal-description"></p>
-          <div><strong>First Air:</strong> <span id="tv-modal-air-date"></span></div>
-          <div><strong>Seasons:</strong> <span id="tv-modal-total-seasons"></span></div>
-          <button class="share-btn" onclick="shareTvShow()">Share</button>
-          <button class="favorite-btn" id="tv-favorite-btn" title="Add to favorites"><i class="fas fa-heart"></i></button>
-          <button class="watchlist-btn" id="tv-watchlist-btn" title="Add to watchlist"><i class="fas fa-bookmark"></i></button>
-          <div id="tv-progress"></div>
-          <div id="tv-modal-seasons-list"></div>
-        </div>
-      </div>
-      <div class="iframe-container">
-        <iframe id="tv-episode-player" allowfullscreen style="display:none;"></iframe>
-        <button class="iframe-play-overlay" onclick="triggerIframePlay('tv-episode-player')"><i class="fas fa-play"></i></button>
-      </div>
-      <button class="tv-episode-play-btn" id="tv-episode-next-btn" style="display:none;margin:0.5rem auto;">Next Episode</button>
-    </div>
-  </div>
-
   <nav class="navbar navbar-expand-lg">
     <div class="container-fluid">
       <a class="navbar-brand" href="index.html">
@@ -426,292 +403,291 @@
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="navbar-nav ml-auto mb-2 mb-lg-0">
           <li class="nav-item"><a class="nav-link active" id="nav-movies" href="#">Trending Movies</a></li>
-          <li class="nav-item"><a class="nav-link" id="nav-tvshows" href="#">Trending TV</a></li>
-          <li class="nav-item"><a class="nav-link" id="nav-anime" href="#">Anime</a></li>
-          <li class="nav-item"><a class="nav-link" id="nav-tagalog" href="#">Tagalog</a></li>
-          <li class="nav-item"><a class="nav-link" id="nav-netflix" href="#"><i class="fab fa-netflix"></i> Netflix</a></li>
-          <li class="nav-item"><a class="nav-link" id="nav-favorites" href="#"><i class="fas fa-heart"></i> Favorites</a></li>
-          <li class="nav-item"><a class="nav-link" id="nav-watchlist" href="#"><i class="fas fa-bookmark"></i> Watchlist</a></li>
         </ul>
       </div>
     </div>
   </nav>
 
   <div class="tm-hero d-flex justify-content-center align-items-center">
-    <form class="d-flex tm-search-form" id="movie-search-form" autocomplete="off" style="max-width:500px;margin:1.5rem auto;">
-      <input class="form-control tm-search-input" type="search" id="movie-search-input" placeholder="Search movies or TV..." aria-label="Search">
+    <form class="d-flex tm-search-form" id="search-form" autocomplete="off" style="max-width:500px;margin:1.5rem auto;">
+      <input class="form-control tm-search-input" type="search" id="search-input" placeholder="Search movies..." aria-label="Search">
       <button class="btn tm-search-btn" type="submit"><i class="fas fa-search"></i></button>
     </form>
   </div>
 
   <div class="container-fluid tm-container-content tm-mt-60">
-<div class="row mb-3">
+    <div class="row mb-3">
       <h2 class="col-12 tm-text-primary" id="section-title">Trending Movies</h2>
     </div>
     <div class="row mb-3">
-      <form class="d-flex tm-search-form" id="search-form" autocomplete="off" style="max-width:500px;margin:0 auto;">
-        <input class="form-control tm-search-input" type="search" id="search-input" placeholder="Search movies..." aria-label="Search">
-        <button class="btn tm-search-btn" type="submit"><i class="fas fa-search"></i></button>
-      </form>
       <div style="max-width:500px;margin:0.5rem auto;">
         <button class="share-btn" id="home-btn">Return to Home</button>
       </div>
     </div>
     <div id="movie-grid" class="row"></div>
     <div id="loading" style="display:none;"><div class="spin"></div></div>
-    <button id="scroll-top" style="display:none;position:fixed;bottom:20px;right:20px;background:#2196f3;color:#fff;border:none;border-radius:50%;width:50px;height:50px;font-size:1.5em;cursor:pointer;"><i class="fas fa-arrow-up"></i></button>
+    <button id="scroll-top" style="display:none;"><i class="fas fa-arrow-up"></i></button>
+    <div id="modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" onclick="closeModal()">×</span>
+        <div class="modal-body">
+          <img id="modal-image" src="" alt="Poster" />
+          <h3 id="modal-title"></h3>
+          <p id="modal-description"></p>
+          <p><strong>Release:</strong> <span id="modal-release"></span></p>
+          <p><strong>Rating:</strong> <span id="modal-rating"></span></p>
+          <button class="share-btn" id="modal-share">Share</button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <footer id="footer" class="tm-bg-gray">
-    <div class="container-fluid">
+  <footer class="tm-bg-gray pt-4 pb-2 tm-text-gray tm-footer">
+    <div class="container-fluid tm-container-small">
       <div class="row">
-        <div class="col-lg-12">
-          <p>© 2025 MovieDck Project</p>
+        <div class="col-lg-12 px-4 mb-4">
+          <p>© 2025 MovieDck Project - Last updated: 02:04 PM PST, Thursday, June 19, 2025</p>
         </div>
       </div>
     </div>
   </footer>
 
-<style>
-  .spin {
-    border: 4px solid #2196f3;
-    border-top: 4px solid transparent;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 0.8s linear infinite;
-    margin: 2rem auto;
-  }
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  .error, .empty {
-    text-align: center;
-    color: #bbb;
-    padding: 2rem;
-    width: 100%;
-  }
-  .tm-bg-gray {
-    background: #15191e !important;
-    color: #eee !important;
-    padding: 1rem;
-  }
-  #scroll-top:hover {
-    background: #1976d2;
-  }
-  @media (max-width: 767.98px) {
-    #scroll-top {
-      bottom: 10px;
-      right: 10px;
-      width: 40px;
-      height: 40px;
-      font-size: 1.2em;
+  <script defer src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js"></script>
+  <script>
+    const apiKey = '40f1982842db35042e8561b13b38d492';
+    const imgUrl = 'https://image.tmdb.org/t/p/w300';
+    const noPoster = 'https://via.placeholder.com/300x450?text=No+Image';
+    let page = 1;
+    let maxPages = 1;
+    let mode = 'popular';
+    let query = '';
+    let loading = false;
+    let done = false;
+    let movies = [];
+
+    function log(msg) {
+      console.log(`[MovieDck ${new Date().toISOString().slice(11, 19)}] ${msg}`);
     }
-  }
-</style>
 
-<script>
-  const apiKey = '40f1982842db35042e8561b13b38d492';
-  const imgUrl = 'https://image.tmdb.org/t/p/w300';
-  const noPoster = 'https://via.placeholder.com/300x450?text=No+Image';
-  let page = 1;
-  let maxPages = 1;
-  let mode = 'popular';
-  let query = '';
-  let loading = false;
-  let done = false;
-  let movies = [];
+    function showError(msg) {
+      log(`Error: ${msg}`);
+      const grid = document.getElementById('movie-grid');
+      grid.innerHTML = `<div class="empty-state">${msg}</div>`;
+    }
 
-  function log(msg) {
-    console.log(`[MovieDck ${new Date().toISOString().slice(11, 19)}] ${msg}`);
-  }
-
-  function showError(msg) {
-    log(`Error: ${msg}`);
-    const grid = document.getElementById('movie-grid');
-    grid.innerHTML = `<div class="error">${msg}</div>`;
-  }
-
-  async function fetchMovies(pageNum) {
-    log(`Fetching movies: mode=${mode}, page=${pageNum}, query=${query}`);
-    if (loading || done) return [];
-    loading = true;
-    document.getElementById('loading').style.display = 'block';
-    const cacheKey = `${mode}_${pageNum}_${query}`;
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        const data = JSON.parse(cached);
-        if (data.results && Array.isArray(data.results)) {
-          log(`Cache hit: ${data.results.length} items`);
-          maxPages = data.total_pages || 1;
-          loading = false;
-          document.getElementById('loading').style.display = 'none';
-          return data.results;
+    async function fetchMovies(pageNum) {
+      log(`Fetching movies: mode=${mode}, page=${pageNum}, query=${query}`);
+      if (loading || done) return [];
+      loading = true;
+      document.getElementById('loading').style.display = 'block';
+      const cacheKey = `${mode}_${pageNum}_${query}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const data = JSON.parse(cached);
+          if (data.results && Array.isArray(data.results)) {
+            log(`Cache hit: ${data.results.length} items`);
+            maxPages = data.total_pages || 1;
+            loading = false;
+            document.getElementById('loading').style.display = 'none';
+            return data.results;
+          }
+        } catch (e) {
+          log(`Cache error: ${e}`);
+          localStorage.removeItem(cacheKey);
         }
+      }
+      let url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${apiKey}&page=${pageNum}`;
+      if (mode === 'search' && query) {
+        url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}&page=${pageNum}&include_adult=false`;
+      }
+      try {
+        log(`API call: ${url}`);
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`HTTP ${res.status}: ${errText}`);
+        }
+        const data = await res.json();
+        if (!data.results) throw new Error('No results in API response');
+        maxPages = data.total_pages || 1;
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+        log(`Fetched ${data.results.length} movies, total pages=${maxPages}`);
+        loading = false;
+        document.getElementById('loading').style.display = 'none';
+        return data.results;
       } catch (e) {
-        log(`Cache error: ${e}`);
-        localStorage.removeItem(cacheKey);
+        log(`Fetch error: ${e.message}`);
+        showError('Cannot load movies. Check your internet or try later.');
+        loading = false;
+        document.getElementById('loading').style.display = 'none';
+        return [];
       }
     }
-    let url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${apiKey}&page=${pageNum}`;
-    if (mode === 'search' && query) {
-      url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}&page=${pageNum}&include_adult=false`;
-    }
-    try {
-      log(`API call: ${url}`);
-      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`HTTP ${res.status}: ${errText}`);
+
+    function renderMovies(items, clear = false) {
+      log(`Rendering ${items.length} movies`);
+      const grid = document.getElementById('movie-grid');
+      if (!grid) {
+        log('Error: #movie-grid not found');
+        return;
       }
-      const data = await res.json();
-      if (!data.results) throw new Error('No results in API response');
-      maxPages = data.total_pages || 1;
-      localStorage.setItem(cacheKey, JSON.stringify(data));
-      log(`Fetched ${data.results.length} movies, total pages=${maxPages}`);
-      loading = false;
-      document.getElementById('loading').style.display = 'none';
-      return data.results;
-    } catch (e) {
-      log(`Fetch error: ${e.message}`);
-      showError('Cannot load movies. Check your internet or try later.');
-      loading = false;
-      document.getElementById('loading').style.display = 'none';
-      return [];
+      if (clear) grid.innerHTML = '';
+      if (!items.length) {
+        grid.innerHTML = '<div class="empty-state">No movies found.</div>';
+        log('No movies to render');
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'movie-col';
+        div.innerHTML = `
+          <div class="movie-poster-wrapper" data-id="${item.id}">
+            <img src="${item.poster_path ? imgUrl + item.poster_path : noPoster}" alt="${item.title || 'Movie'}" class="img-fluid movie-poster-img">
+            <button class="play-btn-centered" title="View Details"><i class="fas fa-play"></i></button>
+          </div>
+          <div class="movie-metadata">
+            <span class="movie-title">${item.title || 'Untitled'}</span>
+            <span class="movie-year">${item.release_date?.slice(0, 4) || ''}</span>
+          </div>
+        `;
+        frag.appendChild(div);
+      });
+      grid.appendChild(frag);
+      log('Movies rendered successfully');
     }
-  }
 
-  function renderMovies(items, clear = false) {
-    log(`Rendering ${items.length} movies`);
-    const grid = document.getElementById('movie-grid');
-    if (!grid) {
-      log('Error: #movie-grid not found');
-      return;
-    }
-    if (clear) grid.innerHTML = '';
-    if (!items.length) {
-      grid.innerHTML = '<div class="empty">No movies found.</div>';
-      log('No movies to render');
-      return;
-    }
-    const frag = document.createDocumentFragment();
-    items.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'col-6 col-md-3 col-xl-2';
-      div.innerHTML = `
-        <div class="movie-poster-wrapper" data-id="${item.id}">
-          <img src="${item.poster_path ? imgUrl + item.poster_path : noPoster}" alt="${item.title || 'Movie'}" class="img-fluid movie-poster-img">
-          <button class="play-btn-centered" title="Play Movie"><i class="fas fa-play"></i></button>
-        </div>
-        <div class="movie-metadata">
-          <span class="movie-title">${item.title || 'Untitled'}</span>
-          <span class="movie-year">${item.release_date?.slice(0, 4) || ''}</span>
-        </div>
-      `;
-      frag.appendChild(div);
-    });
-    grid.appendChild(frag);
-    log('Movies rendered successfully');
-  }
-
-  async function loadMovies(clear = false) {
-    log(`Loading movies, clear=${clear}`);
-    if (loading || done) return;
-    const items = await fetchMovies(page);
-    if (items.length) {
-      if (clear) movies = items;
-      else movies = [...movies, ...items];
-      renderMovies(items, clear);
-      page++;
-      if (page > maxPages) {
+    async function loadMovies(clear = false) {
+      log(`Loading movies, clear=${clear}`);
+      if (loading || done) return;
+      const items = await fetchMovies(page);
+      if (items.length) {
+        if (clear) movies = items;
+        else movies = [...movies, ...items];
+        renderMovies(items, clear);
+        page++;
+        if (page > maxPages) {
+          done = true;
+          log('Reached end of pages');
+        }
+      } else if (clear) {
+        showError('No movies available.');
         done = true;
-        log('Reached end of pages');
       }
-    } else if (clear) {
-      showError('No movies available.');
-      done = true;
     }
-  }
 
-  function throttle(fn, wait) {
-    let lastCall = 0;
-    return function(...args) {
-      const now = Date.now();
-      if (now - lastCall >= wait) {
-        lastCall = now;
-        fn(...args);
+    function throttle(fn, wait) {
+      let lastCall = 0;
+      return function(...args) {
+        const now = Date.now();
+        if (now - lastCall >= wait) {
+          lastCall = now;
+          fn(...args);
+        }
+      };
+    }
+
+    const scrollHandler = throttle(() => {
+      if (loading || done || mode === 'search') return;
+      const scrollMax = document.documentElement.scrollHeight - window.innerHeight;
+      const scrolled = window.scrollY;
+      if (scrollMax - scrolled < 400) {
+        log('Scrolled near bottom, loading more');
+        loadMovies();
       }
-    };
-  }
+      document.getElementById('scroll-top').style.display = scrolled > 200 ? 'block' : 'none';
+    }, 200);
 
-  const scrollHandler = throttle(() => {
-    if (loading || done || mode === 'search') return;
-    const scrollMax = document.documentElement.scrollHeight - window.innerHeight;
-    const scrolled = window.scrollY;
-    if (scrollMax - scrolled < 400) {
-      log('Scrolled near bottom, loading more');
-      loadMovies();
-    }
-    document.getElementById('scroll-top').style.display = scrolled > 200 ? 'block' : 'none';
-  }, 200);
-
-  document.addEventListener('DOMContentLoaded', () => {
-    log('Page loaded');
-    const grid = document.getElementById('movie-grid');
-    if (!grid) {
-      log('Fatal: #movie-grid missing');
-      alert('Page error: movie grid not found.');
-      return;
+    async function showModal(movieId) {
+      log(`Showing modal for movie ID: ${movieId}`);
+      try {
+        const res = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${apiKey}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const movie = await res.json();
+        document.getElementById('modal-image').src = movie.poster_path ? imgUrl + movie.poster_path : noPoster;
+        document.getElementById('modal-title').textContent = movie.title || 'Untitled';
+        document.getElementById('modal-description').textContent = movie.overview || 'No description available.';
+        document.getElementById('modal-release').textContent = movie.release_date || 'N/A';
+        document.getElementById('modal-rating').textContent = `${(movie.vote_average || 0).toFixed(1)}/10`;
+        document.getElementById('modal').style.display = 'flex';
+      } catch (e) {
+        log(`Modal fetch error: ${e.message}`);
+        showError('Failed to load movie details.');
+      }
     }
 
-    document.getElementById('search-form').onsubmit = e => {
-      e.preventDefault();
-      const input = document.getElementById('search-input').value.trim();
-      if (!input) return;
-      log(`Searching: ${input}`);
-      query = input;
-      mode = 'search';
-      page = 1;
-      done = false;
-      movies = [];
-      document.getElementById('section-title').textContent = `Search: ${input}`;
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      log('Page loaded');
+      const grid = document.getElementById('movie-grid');
+      if (!grid) {
+        log('Fatal: #movie-grid missing');
+        alert('Page error: movie grid not found.');
+        return;
+      }
+
+      document.getElementById('search-form').onsubmit = e => {
+        e.preventDefault();
+        const input = document.getElementById('search-input').value.trim();
+        if (!input) return;
+        log(`Searching: ${input}`);
+        query = input;
+        mode = 'search';
+        page = 1;
+        done = false;
+        movies = [];
+        document.getElementById('section-title').textContent = `Search: ${input}`;
+        loadMovies(true);
+      };
+
+      document.getElementById('home-btn').onclick = () => {
+        log('Returning to home');
+        query = '';
+        mode = 'popular';
+        page = 1;
+        done = false;
+        movies = [];
+        document.getElementById('section-title').textContent = 'Trending Movies';
+        document.getElementById('search-input').value = '';
+        loadMovies(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      document.getElementById('scroll-top').onclick = () => {
+        log('Scrolling to top');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      document.getElementById('movie-grid').addEventListener('click', e => {
+        const wrapper = e.target.closest('.movie-poster-wrapper');
+        if (wrapper) {
+          const id = wrapper.dataset.id;
+          log(`Clicked movie ID: ${id}`);
+          showModal(id);
+        }
+      });
+
+      document.getElementById('modal-share').onclick = () => {
+        const title = document.getElementById('modal-title').textContent;
+        const url = `https://www.themoviedb.org/movie/${document.getElementById('modal').dataset.id}`;
+        if (navigator.share) {
+          navigator.share({ title: `Check out ${title}!`, url });
+        } else {
+          navigator.clipboard.writeText(`${title}: ${url}`).then(() => alert('Link copied!'));
+        }
+      };
+
+      window.addEventListener('scroll', scrollHandler);
+
+      log('Initial load: trending movies');
       loadMovies(true);
-    };
-
-    document.getElementById('home-btn').onclick = () => {
-      log('Returning to home');
-      query = '';
-      mode = 'popular';
-      page = 1;
-      done = false;
-      movies = [];
-      document.getElementById('section-title').textContent = 'Trending Movies';
-      document.getElementById('search-input').value = '';
-      loadMovies(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    document.getElementById('scroll-top').onclick = () => {
-      log('Scrolling to top');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    document.getElementById('movie-grid').addEventListener('click', e => {
-      const wrapper = e.target.closest('.movie-poster-wrapper');
-      if (wrapper) {
-        const id = wrapper.dataset.id;
-        log(`Clicked movie ID: ${id}`);
-        alert(`Movie ID ${id} clicked (modal placeholder)`);
-      }
     });
-
-    window.addEventListener('scroll', scrollHandler);
-
-    log('Initial load: trending movies');
-    loadMovies(true);
-  });
-</script>
+  </script>
 </body>
 </html>
