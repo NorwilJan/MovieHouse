@@ -443,6 +443,56 @@
     #category-search-form .tm-search-btn:focus {
       background: #2196f3;
     }
+<!-- Back to Top Button -->
+<button id="back-to-top-btn" title="Back to Top">
+  <i class="fas fa-arrow-up"></i>
+</button>
+<style>
+#back-to-top-btn {
+  position: fixed;
+  bottom: 38px;
+  right: 32px;
+  z-index: 1000;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  font-size: 2em;
+  opacity: 0.85;
+  box-shadow: 0 2px 12px #1976d299;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, opacity 0.2s;
+}
+#back-to-top-btn:hover,
+#back-to-top-btn:focus {
+  background: #2196f3;
+  opacity: 1;
+  outline: none;
+}
+#back-to-top-btn i {
+  pointer-events: none;
+}
+</style>
+<script>
+(function() {
+  var btn = document.getElementById('back-to-top-btn');
+  window.addEventListener('scroll', function() {
+    if (window.scrollY > 300) {
+      btn.style.display = 'flex';
+    } else {
+      btn.style.display = 'none';
+    }
+  });
+  btn.addEventListener('click', function() {
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  });
+})();
+</script>
+
   </style>
  <script type="text/javascript" data-cfasync="false">
 /*<![CDATA[/* */
