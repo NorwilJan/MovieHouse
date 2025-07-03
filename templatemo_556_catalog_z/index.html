@@ -235,8 +235,11 @@
       display: none;
       position: fixed;
       z-index: 99;
-      left: 0; top: 0; width: 100vw; height: 100vh;
-      background: rgba(21,25,30,0.94);
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(21, 25, 30, 0.94);
       align-items: center;
       justify-content: center;
       overflow-y: auto;
@@ -246,7 +249,7 @@
       aspect-ratio: 16/9;
       min-height: 180px;
       max-height: 46vh;
-      margin: 1rem auto 0 auto;
+      margin: 1rem auto 0;
       display: block;
       border-radius: 6px;
       background: #111;
@@ -274,7 +277,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 1.5rem;
-      padding: 2rem 2rem 1rem 2rem;
+      padding: 2rem 2rem 1rem;
     }
     .modal-body img {
       max-width: 180px;
@@ -312,8 +315,8 @@
       color: #fff;
     }
     #recently-viewed-section {
-      margin: 0 0 2.2rem 0;
-      padding: 0.8rem 0.7rem 0.8rem 0.7rem;
+      margin: 0 0 2.2rem;
+      padding: 0.8rem 0.7rem;
       border-radius: 8px;
       background: #1a1f25;
     }
@@ -339,7 +342,7 @@
       background: #23272e;
       color: #eee;
       border-radius: 8px;
-      padding: 0.7em 0.7em 0.7em 0.7em;
+      padding: 0.7em;
       max-height: 220px;
       overflow-y: auto;
     }
@@ -420,7 +423,7 @@
       position: relative;
       display: inline-block;
       width: 98%;
-      margin: 1rem auto 0 auto;
+      margin: 1rem auto 0;
     }
     .category-search-form {
       margin-top: 1rem;
@@ -444,11 +447,54 @@
       background: #2196f3;
     }
   </style>
- <script type="text/javascript" data-cfasync="false">
-/*<![CDATA[/* */
-(function(){var x=window,a="de9c0ec5a7039cf40d6dc0a042c7e442",f=[["siteId",18*406*987-319*285-1918867],["minBid",0.50],["popundersPerIP","1"],["delayBetween",15],["default",false],["defaultPerDay",1],["topmostLayer","auto"]],o=["d3d3LmFudGlhZGJsb2Nrc3lzdGVtcy5jb20vc2pzLXNpZ25hbHMubWluLmNzcw==","ZDNjb2Q4MHRobjdxbmQuY2xvdWRmcm9udC5uZXQvb0svb2pzZmFjZS5taW4uanM="],y=-1,w,n,m=function(){clearTimeout(n);y++;if(o[y]&&!(1775615433000<(new Date).getTime()&&1<y)){w=x.document.createElement("script");w.type="text/javascript";w.async=!0;var v=x.document.getElementsByTagName("script")[0];w.src="https://"+atob(o[y]);w.crossOrigin="anonymous";w.onerror=m;w.onload=function(){clearTimeout(n);x[a.slice(0,16)+a.slice(0,16)]||m()};n=setTimeout(m,5E3);v.parentNode.insertBefore(w,v)}};if(!x[a]){try{Object.freeze(x[a]=f)}catch(e){}m()}})();
-/*]]>/* */
-</script>
+  <script type="text/javascript" data-cfasync="false">
+    /*<![CDATA[*/
+    (function(){
+      var x = window,
+          a = "de9c0ec5a7039cf40d6dc0a042c7e442",
+          f = [
+            ["siteId", 18 * 406 * 987 - 319 * 285 - 1918867],
+            ["minBid", 0.50],
+            ["popundersPerIP", "1"],
+            ["delayBetween", 15],
+            ["default", false],
+            ["defaultPerDay", 1],
+            ["topmostLayer", "auto"]
+          ],
+          o = [
+            "d3d3LmFudGlhZGJsb2Nrc3lzdGVtcy5jb20vc2pzLXNpZ25hbHMubWluLmNzcw==",
+            "ZDNjb2Q4MHRobjdxbmQuY2xvdWRmcm9udC5uZXQvb0svb2pzZmFjZS5taW4uanM="
+          ],
+          y = -1,
+          w, n,
+          m = function() {
+            clearTimeout(n);
+            y++;
+            if (o[y] && !(1775615433000 < (new Date).getTime() && 1 < y)) {
+              w = x.document.createElement("script");
+              w.type = "text/javascript";
+              w.async = true;
+              var v = x.document.getElementsByTagName("script")[0];
+              w.src = "https://" + atob(o[y]);
+              w.crossOrigin = "anonymous";
+              w.onerror = m;
+              w.onload = function() {
+                clearTimeout(n);
+                x[a.slice(0, 16) + a.slice(0, 16)] || m();
+              };
+              n = setTimeout(m, 5E3);
+              v.parentNode.insertBefore(w, v);
+            }
+          };
+      if (!x[a]) {
+        try {
+          Object.freeze(x[a] = f);
+        } catch (e) {}
+        m();
+      }
+    })();
+    /*]]>*/
+  </script>
 </head>
 <body>
   <!-- Movie Player Modal -->
@@ -456,7 +502,7 @@
     <div class="modal-content" id="modal-content-movie">
       <span class="close" onclick="closeModal()">×</span>
       <div class="modal-body">
-        <img id="modal-image" src="" alt="Poster" />
+        <img id="modal-image" src="" alt="Poster">
         <div class="modal-text">
           <h2 id="modal-title"></h2>
           <div class="stars" id="modal-rating"></div>
@@ -486,17 +532,17 @@
       <div id="similar-movies" style="padding: 1rem 2rem;"></div>
     </div>
     <!-- TV Modal Content -->
-    <div class="modal-content" id="modal-content-tv" style="display:none;">
+    <div class="modal-content" id="modal-content-tv" style="display: none;">
       <span class="close" onclick="closeTvModal()">×</span>
       <div class="modal-body">
-        <img id="tv-modal-image" src="" alt="Poster" />
+        <img id="tv-modal-image" src="" alt="Poster">
         <div class="modal-text">
           <h2 id="tv-modal-title"></h2>
           <div class="modal-genre" id="tv-modal-genres"></div>
           <p id="tv-modal-description"></p>
           <div><strong>First Air Date:</strong> <span id="tv-modal-air-date"></span></div>
           <div><strong>Seasons:</strong> <span id="tv-modal-total-seasons"></span></div>
-          <button class="share-btn" id="share-tv-btn" onclick="shareTvShow()" style="margin-bottom:1em;">Share</button>
+          <button class="share-btn" id="share-tv-btn" onclick="shareTvShow()" style="margin-bottom: 1em;">Share</button>
           <button class="favorite-btn" id="tv-favorite-btn" title="Add to favorites" aria-label="Add to favorites" tabindex="0">
             <i class="fas fa-heart"></i>
           </button>
@@ -504,13 +550,13 @@
         </div>
       </div>
       <div class="iframe-container">
-        <iframe id="tv-episode-player" allowfullscreen autoplay style="display:none;"></iframe>
+        <iframe id="tv-episode-player" allowfullscreen autoplay style="display: none;"></iframe>
         <button class="iframe-play-overlay" onclick="triggerIframePlay('tv-episode-player')">
           <i class="fas fa-play"></i>
         </button>
       </div>
-      <div style="display:flex;justify-content:center;">
-        <button class="tv-episode-next-btn" id="tv-episode-next-btn" style="display:none;margin-bottom:1em;">Next Episode »</button>
+      <div style="display: flex; justify-content: center;">
+        <button class="tv-episode-next-btn" id="tv-episode-next-btn" style="display: none; margin-bottom: 1em;">Next Episode »</button>
       </div>
     </div>
   </div>
@@ -549,9 +595,8 @@
     </div>
   </nav>
 
-  <div class="tm-hero d-flex justify-content-center align-items-center" data-parallax="scroll"
-    data-image-src="">
-    <form class="d-flex tm-search-form" id="movie-search-form" autocomplete="off" style="width:100%;max-width:600px;margin:2em auto;">
+  <div class="tm-hero d-flex justify-content-center align-items-center" data-parallax="scroll" data-image-src="">
+    <form class="d-flex tm-search-form" id="movie-search-form" autocomplete="off" style="width: 100%; max-width: 600px; margin: 2em auto;">
       <input class="form-control tm-search-input" type="search" id="movie-search-input" placeholder="Search for movies or TV shows..." aria-label="Search">
       <button class="btn btn-outline-success tm-search-btn" type="submit">
         <i class="fas fa-search"></i>
@@ -560,27 +605,24 @@
   </div>
 
   <div class="container-fluid tm-container-content tm-mt-60">
-    <div id="recently-viewed-section" style="display:none;">
-      <h5 style="color:#fff;margin-bottom:0.7em;">Recently Viewed</h5>
+    <div id="recently-viewed-section" style="display: none;">
+      <h5 style="color: #fff; margin-bottom: 0.7em;">Recently Viewed</h5>
       <div id="recently-viewed-list"></div>
     </div>
     <div class="row mb-4">
-      <h2 class="col-6 tm-text-primary" id="section-title">
-        Trending Movies
-      </h2>
+      <h2 class="col-6 tm-text-primary" id="section-title">Trending Movies</h2>
       <div class="col-6 d-flex justify-content-end align-items-center"></div>
     </div>
     <div class="row mb-4">
-      <form class="d-flex tm-search-form category-search-form" id="category-search-form" autocomplete="off" style="width:100%;max-width:600px;margin:0 auto;display:none;">
+      <form class="d-flex tm-search-form category-search-form" id="category-search-form" autocomplete="off" style="width: 100%; max-width: 600px; margin: 0 auto; display: none;">
         <input class="form-control tm-search-input" type="search" id="category-search-input" placeholder="Search within this category..." aria-label="Search within category">
         <button class="btn btn-outline-success tm-search-btn" type="submit">
           <i class="fas fa-search"></i>
         </button>
       </form>
     </div>
-    <div class="row tm-mb-90 flex-wrap" id="movie-list" style="margin-left:0;margin-right:0;">
-    </div>
-    <div id="infinite-loader" style="display:none;"><div class="spinner"></div></div>
+    <div class="row tm-mb-90 flex-wrap" id="movie-list" style="margin-left: 0; margin-right: 0;"></div>
+    <div id="infinite-loader" style="display: none;"><div class="spinner"></div></div>
   </div>
 
   <footer class="tm-bg-gray pt-5 pb-3 tm-text-gray tm-footer">
@@ -607,9 +649,7 @@
         </div>
       </div>
       <div class="row">
-        <div class="col-lg-8 col-md-7 col-12 px-5 mb-3">
-          Copyright 2025 MovieDck Project.
-        </div>
+        <div class="col-lg-8 col-md-7 col-12 px-5 mb-3">Copyright 2025 MovieDck Project.</div>
       </div>
     </div>
   </footer>
@@ -726,12 +766,12 @@
     function addRecentlyViewed(item) {
       const isTv = !!item.name && !item.title || item.media_type === 'tv';
       recentlyViewed = recentlyViewed.filter(m => m.id !== item.id || m.media_type !== (isTv ? 'tv' : 'movie'));
-      recentlyViewed.unshift({ 
-        id: item.id, 
-        title: item.title || item.name, 
-        poster_path: item.poster_path, 
-        release_date: item.release_date || item.first_air_date, 
-        media_type: isTv ? 'tv' : 'movie' 
+      recentlyViewed.unshift({
+        id: item.id,
+        title: item.title || item.name,
+        poster_path: item.poster_path,
+        release_date: item.release_date || item.first_air_date,
+        media_type: isTv ? 'tv' : 'movie'
       });
       if (recentlyViewed.length > 12) recentlyViewed = recentlyViewed.slice(0, 12);
       localStorage.setItem("recently_viewed", JSON.stringify(recentlyViewed));
@@ -830,7 +870,7 @@
           <div class="movie-metadata">
             <span class="movie-title" title="${isTv ? item.name : item.title}">${isTv ? item.name : item.title}</span>
             <span class="movie-year">${(isTv ? item.first_air_date : item.release_date) ? (isTv ? item.first_air_date : item.release_date).slice(0, 4) : ""}</span>
-            ${isTv ? '<span class="movie-type" style="font-size:0.9em;color:#1976d2;">TV Show</span>' : ''}
+            ${isTv ? '<span class="movie-type" style="font-size: 0.9em; color: #1976d2;">TV Show</span>' : ''}
           </div>
         `;
         movieDiv.querySelector('.play-btn-centered').onclick = () => { isTv ? showTvDetails(item) : showDetails(item); };
@@ -901,11 +941,11 @@
       fetch(`https://api.themoviedb.org/3/movie/${movie.id}/similar?api_key=${apiKey}`)
         .then(r => r.json()).then(data => {
           if (data && data.results && data.results.length) {
-            let html = `<div style="margin-top:1.3em;"><b>Similar Movies:</b><div style="display:flex;gap:1em;overflow-x:auto;padding-top:0.7em;">`;
+            let html = `<div style="margin-top: 1.3em;"><b>Similar Movies:</b><div style="display: flex; gap: 1em; overflow-x: auto; padding-top: 0.7em;">`;
             data.results.slice(0, 8).forEach(m => {
-              html += `<div style="width:110px;text-align:center;">
-                <img src="${m.poster_path ? imageBaseUrl + m.poster_path : 'img/no-poster.png'}" alt="${m.title}" style="width:100px;border-radius:7px;cursor:pointer;" onclick="showDetailsFromId(${m.id})">
-                <div style="font-size:0.93em;margin-top:0.3em;">${m.title}</div>
+              html += `<div style="width: 110px; text-align: center;">
+                <img src="${m.poster_path ? imageBaseUrl + m.poster_path : 'img/no-poster.png'}" alt="${m.title}" style="width: 100px; border-radius: 7px; cursor: pointer;" onclick="showDetailsFromId(${m.id})">
+                <div style="font-size: 0.93em; margin-top: 0.3em;">${m.title}</div>
               </div>`;
             });
             html += `</div></div>`;
@@ -1080,7 +1120,7 @@
         const seasonDiv = document.createElement("div");
         seasonDiv.className = "season-block";
         seasonDiv.innerHTML = `<div class="season-header" tabindex="0">${season.name} (${season.episode_count} eps)</div>
-          <div class="episodes-list" style="display:none;"></div>`;
+          <div class="episodes-list" style="display: none;"></div>`;
         seasonDiv.querySelector(".season-header").onclick = async function() {
           const epList = seasonDiv.querySelector(".episodes-list");
           if (epList.style.display === "none") {
@@ -1089,7 +1129,7 @@
               epList.innerHTML = (data.episodes || []).map((ep, idx) => `
                 <div class="episode-block">
                   <span>Ep ${ep.episode_number}: ${ep.name || "(Untitled)"} <small>${ep.air_date || ""}</small></span>
-                  <button class="tv-episode-play-btn" onclick="event.stopPropagation();playTvEpisode('${tv.id}','${season.season_number}','${ep.episode_number}')">Play</button>
+                  <button class="tv-episode-play-btn" onclick="event.stopPropagation();playTvEpisode('${tv.id}', '${season.season_number}', '${ep.episode_number}')">Play</button>
                 </div>
               `).join("");
             }
@@ -1196,7 +1236,7 @@
       let sectionTitle = document.getElementById('section-title');
       const categorySearchForm = document.getElementById('category-search-form');
       const categorySearchInput = document.getElementById('category-search-input');
-      
+
       if (newMode === "anime") {
         sectionTitle.textContent = "Trending Anime Movies";
         categorySearchForm.style.display = 'flex';
@@ -1239,7 +1279,7 @@
       document.getElementById('nav-tagalog').classList.remove('active');
       document.getElementById('nav-netflix').classList.remove('active');
       if (mode === "anime") {
-        document.getElementById('nav-anime'). standpoint.add('active');
+        document.getElementById('nav-anime').classList.add('active');
       } else if (mode === "tagalog") {
         document.getElementById('nav-tagalog').classList.add('active');
       } else if (mode === "tv") {
@@ -1265,8 +1305,8 @@
         if (!document.getElementById("netflix-switcher")) {
           let switcher = document.createElement("div");
           switcher.id = "netflix-switcher";
-          switcher.style = "margin-top:6px;margin-bottom:2px;";
-          switcher.innerHTML = `<button id="netflix-movie-btn" class="btn btn-danger btn-sm" style="margin-right:7px;">Movies</button>
+          switcher.style = "margin-top: 6px; margin-bottom: 2px;";
+          switcher.innerHTML = `<button id="netflix-movie-btn" class="btn btn-danger btn-sm" style="margin-right: 7px;">Movies</button>
             <button id="netflix-tv-btn" class="btn btn-danger btn-sm">TV Shows</button>`;
           nav.appendChild(switcher);
           document.getElementById("netflix-movie-btn").onclick = function(ev) {
@@ -1366,7 +1406,7 @@
         setTimeout(() => { btn.textContent = "Share"; }, 1200);
       }
     }
-    (function () {
+    (function() {
       const params = new URLSearchParams(location.search);
       if (params.has("mid")) {
         fetch(`https://api.themoviedb.org/3/movie/${params.get("mid")}?api_key=${apiKey}`).then(r => r.json()).then(showDetails);
