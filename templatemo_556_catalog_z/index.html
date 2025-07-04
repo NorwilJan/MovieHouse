@@ -733,7 +733,7 @@
       };
       const unlockOrientation = () => {
         if (screen.orientation && screen.orientation.unlock) {
-          screen.orientation.unlock().catch err => console.warn('Orientation unlock failed:', err));
+          screen.orientation.unlock().catch(err => console.warn('Orientation unlock failed:', err));
         }
       };
       iframe.addEventListener('fullscreenchange', () => {
@@ -834,8 +834,7 @@
         list.appendChild(div);
       });
     }
-  </script>
-<script>
+
     // FETCH & RENDER
     async function fetchMoviesInf(page = 1) {
       let url = "";
