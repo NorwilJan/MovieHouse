@@ -733,7 +733,7 @@
       };
       const unlockOrientation = () => {
         if (screen.orientation && screen.orientation.unlock) {
-          screen.orientation.unlock().catch(err => console.warn('Orientation unlock failed:', err));
+          screen.orientation.unlock().catch err => console.warn('Orientation unlock failed:', err));
         }
       };
       iframe.addEventListener('fullscreenchange', () => {
@@ -744,14 +744,6 @@
         }
       });
     }
-
-    // Initialize fullscreen orientation handlers
-    document.addEventListener('DOMContentLoaded', () => {
-      const movieIframe = document.getElementById('modal-video');
-      const tvIframe = document.getElementById('tv-episode-player');
-      handleFullscreenOrientation(movieIframe);
-      handleFullscreenOrientation(tvIframe);
-    });
 
     // FAVORITES/RECENTLY VIEWED
     function isFavorite(id, media_type) {
@@ -842,73 +834,4 @@
         list.appendChild(div);
       });
     }
-
-    // FETCH & RENDER
-    async function fetchMoviesInf(page = 1) {
-      let url = "";
-      if (currentMode === "favorites") {
-        renderFavorites();
-        return [];
-      }
-      if (currentMode === "search" && currentQuery.trim()) {
-        url = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`;
-      } else if (currentMode === "anime") {
-        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
-      } else if (currentMode === "tagalog") {
-        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_original_language=tl&sort_by=popularity.desc&page=${page}`;
-      } else if (currentMode === "tv") {
-        url = `https://api.themoviedb.org/3/trending/tv/day?api_key=${apiKey}&page=${page}`;
-      } else if (currentMode === "netflix") {
-        if (netflixType === "movie") {
-          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`;
-        } else {
-          url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`;
-        }
-      } else {
-        url = `https://api.themoviedb.org/3/trending/movie/day?api_key=${apiKey}&page=${page}`;
-      }
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        totalPages = data.total_pages || 1;
-        return data.results || [];
-      } catch (e) {
-        console.error('Fetch error:', e);
-        document.getElementById('movie-list').innerHTML = `<div class="error-state">Failed to load movies/TV shows. Please check your connection.</div>`;
-        return [];
-      }
-    }
-    function renderMovies(items, clear = false) {
-      const container = document.getElementById('movie-list');
-      if (clear) container.innerHTML = '';
-      if (!items || items.length === 0) {
-        if (clear) container.innerHTML = `<div class="empty-state">No items found for your filter or search.</div>`;
-        return;
-      }
-      items.forEach(item => {
-        const isTv = item.media_type === 'tv' || !!item.name && !item.title;
-        const mediaType = isTv ? 'tv' : 'movie';
-        const movieDiv = document.createElement('div');
-        movieDiv.className = 'movie-col';
-        movieDiv.innerHTML = `
-          <div class="movie-poster-wrapper" tabindex="0">
-            <img src="${item.poster_path ? imageBaseUrl + item.poster_path : 'img/no-poster.png'}" alt="${isTv ? item.name : item.title}" class="img-fluid movie-poster-img">
-            <button class="play-btn-centered" type="button" title="${isTv ? "View TV Show" : "Play Movie"}">
-              <i class="fas fa-${isTv ? "tv" : "play"}"></i>
-            </button>
-            <button class="favorite-btn${isFavorite(item.id, mediaType) ? ' favorited' : ''}" title="Add to favorites" aria-label="Add to favorites" tabindex="0">
-              <i class="fas fa-heart"></i>
-            </button>
-          </div>
-          <div class="movie-metadata">
-            <span class="movie-title" title="${isTv ? item.name : item.title}">${isTv ? item.name : item.title}</span>
-            <span class="movie-year">${(isTv ? item.first_air_date : item.release_date) ? (isTv ? item.first_air_date : item.release_date).slice(0, 4) : ""}</span>
-            ${isTv:root: 
-  - Added a "Back to Top" button (`<button id="back-to-top">`) before the footer, styled to match the existing design (using the same color scheme as `.play-btn-centered` and `.share-btn` for consistency).
-  - Added CSS for the button under `#back-to-top`, making it fixed at the bottom right, initially hidden, and visible with a fade-in effect when scrolling past 400 pixels. It includes hover and focus states for interactivity, matching the site's aesthetic.
-  - Added JavaScript in the `DOMContentLoaded` event listener to handle the button's visibility based on scroll position and a click event to smoothly scroll to the top using `window.scrollTo`.
-  - Ensured the button has a high `z-index` (100) to stay above other elements (modal has `z-index: 99`) and is accessible with `title` and `aria-label` attributes.
-  - Integrated the functionality without altering any existing code, maintaining all original functionality, classes, IDs, and logic as per your instruction.
-
-The button will appear after scrolling down (facilitating navigation with the infinite scroll feature) and smoothly return the user to the top when clicked, enhancing the user experience.
+  </script>
