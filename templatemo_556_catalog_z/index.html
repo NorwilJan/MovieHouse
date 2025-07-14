@@ -525,6 +525,23 @@
       cursor: pointer;
       text-decoration: none;
     }
+    /* Netflix toggle button */
+    #netflix-toggle {
+      margin-left: 1rem;
+      background: #1976d2;
+      border: none;
+      color: #fff;
+      padding: 0.3rem 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    #netflix-toggle:hover,
+    #netflix-toggle:focus {
+      background: #2196f3;
+      outline: none;
+    }
   </style>
 </head>
 <body>
@@ -622,8 +639,9 @@
           <li class="nav-item">
             <a class="nav-link nav-link-3" id="nav-tagalog" href="javascript:void(0)" aria-label="Trending Tagalog Movies" role="button">Trending Tagalog Movies</a>
           </li>
-          <li class="nav-item">
+          <li class="nav-item d-flex align-items-center">
             <a class="nav-link" id="nav-netflix" href="javascript:void(0)" aria-label="Trending Netflix" role="button"><i class="fab fa-netflix"></i> Trending Netflix</a>
+            <button id="netflix-toggle" aria-label="Toggle Netflix Movies or TV Shows" title="Toggle Netflix Movies or TV Shows" style="display:none;">Movies</button>
           </li>
           <li class="nav-item">
             <a class="nav-link" id="nav-favorites" href="javascript:void(0)" title="Favorites" aria-label="Favorites" role="button"><i class="fas fa-heart"></i> Favorites</a>
@@ -1193,6 +1211,7 @@
         document.getElementById('section-title').textContent = 'Trending Movies';
         document.getElementById('category-search-form').style.display = 'none';
         categoryItems = [];
+        hideNetflixToggle();
         loadMoreMovies(true);
         setActiveNav('nav-movies');
       }
@@ -1206,6 +1225,7 @@
         document.getElementById('section-title').textContent = 'Trending TV Shows';
         document.getElementById('category-search-form').style.display = 'none';
         categoryItems = [];
+        hideNetflixToggle();
         loadMoreMovies(true);
         setActiveNav('nav-tvshows');
       }
@@ -1219,6 +1239,7 @@
         document.getElementById('section-title').textContent = 'Trending Anime Movies';
         document.getElementById('category-search-form').style.display = 'none';
         categoryItems = [];
+        hideNetflixToggle();
         loadMoreMovies(true);
         setActiveNav('nav-anime');
       }
@@ -1232,6 +1253,7 @@
         document.getElementById('section-title').textContent = 'Trending Tagalog Movies';
         document.getElementById('category-search-form').style.display = 'none';
         categoryItems = [];
+        hideNetflixToggle();
         loadMoreMovies(true);
         setActiveNav('nav-tagalog');
       }
@@ -1242,9 +1264,11 @@
         currentMode = 'netflix';
         currentPage = 1;
         reachedEnd = false;
-        document.getElementById('section-title').textContent = 'Trending Netflix';
+        document.getElementById('section-title').textContent = 'Trending Netflix - Movies';
         document.getElementById('category-search-form').style.display = 'none';
         categoryItems = [];
+        showNetflixToggle();
+        netflixType = 'movie';
         loadMoreMovies(true);
         setActiveNav('nav-netflix');
       }
@@ -1258,10 +1282,37 @@
         document.getElementById('section-title').textContent = 'Favorites';
         document.getElementById('category-search-form').style.display = 'none';
         categoryItems = [];
+        hideNetflixToggle();
         renderFavorites();
         setActiveNav('nav-favorites');
       }
     });
+
+    // Netflix toggle button handler
+    const netflixToggleBtn = document.getElementById('netflix-toggle');
+    netflixToggleBtn.addEventListener('click', () => {
+      if (netflixType === 'movie') {
+        netflixType = 'tv';
+        netflixToggleBtn.textContent = 'TV Shows';
+        document.getElementById('section-title').textContent = 'Trending Netflix - TV Shows';
+      } else {
+        netflixType = 'movie';
+        netflixToggleBtn.textContent = 'Movies';
+        document.getElementById('section-title').textContent = 'Trending Netflix - Movies';
+      }
+      currentPage = 1;
+      reachedEnd = false;
+      categoryItems = [];
+      loadMoreMovies(true);
+    });
+
+    function showNetflixToggle() {
+      netflixToggleBtn.style.display = 'inline-block';
+      netflixToggleBtn.textContent = netflixType === 'movie' ? 'Movies' : 'TV Shows';
+    }
+    function hideNetflixToggle() {
+      netflixToggleBtn.style.display = 'none';
+    }
 
     function setActiveNav(id) {
       document.querySelectorAll('#movie-nav .nav-link').forEach((el) => el.classList.remove('active'));
@@ -1282,6 +1333,7 @@
       document.getElementById('section-title').textContent = `Search results for "${query}"`;
       document.getElementById('category-search-form').style.display = 'none';
       categoryItems = [];
+      hideNetflixToggle();
       loadMoreMovies(true);
       setActiveNav(null);
     });
@@ -1306,7 +1358,47 @@
     window.onload = () => {
       loadMoreMovies(true);
       renderRecentlyViewed();
+      hideNetflixToggle();
     };
+
+    // Placeholder for showTvDetails function (you can implement similarly to showDetails)
+    async function showTvDetails(tvShow) {
+      document.getElementById('modal-content-movie').style.display = 'none';
+      document.getElementById('modal-content-tv').style.display = '';
+      document.getElementById('modal').style.display = 'flex';
+      lastModalMovie = tvShow;
+      addRecentlyViewed(tvShow);
+
+      document.getElementById('tv-modal-title').textContent = tvShow.name || tvShow.title || '';
+      document.getElementById('tv-modal-description').textContent = tvShow.overview || '';
+      document.getElementById('tv-modal-image').src = tvShow.poster_path ? imageBaseUrl + tvShow.poster_path : 'img/no-poster.png';
+      document.getElementById('tv-modal-air-date').textContent = tvShow.first_air_date || 'N/A';
+      document.getElementById('tv-modal-total-seasons').textContent = tvShow.number_of_seasons || 'N/A';
+
+      // Genres
+      document.getElementById('tv-modal-genres').innerHTML = (tvShow.genres || [])
+        .map((g) => `<span class="chip">${g.name}</span>`)
+        .join(' ');
+
+      // Favorite button state
+      const tvFavoriteBtn = document.getElementById('tv-favorite-btn');
+      if (isFavorite(tvShow.id, 'tv')) tvFavoriteBtn.classList.add('favorited');
+      else tvFavoriteBtn.classList.remove('favorited');
+
+      tvFavoriteBtn.onclick = () => {
+        toggleFavorite(tvShow.id, 'tv');
+      };
+
+      // TODO: Fetch seasons and episodes if needed and populate #tv-modal-seasons-list
+
+      // Clear iframe and hide episode player
+      const episodePlayer = document.getElementById('tv-episode-player');
+      episodePlayer.style.display = 'none';
+      episodePlayer.src = '';
+
+      // Hide next episode button initially
+      document.getElementById('tv-episode-next-btn').style.display = 'none';
+    }
   </script>
 </body>
 </html>
