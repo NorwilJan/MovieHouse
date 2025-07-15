@@ -1062,13 +1062,21 @@
         const server = servers[index];
         serverSelect.value = server;
         if (server === 'player.videasy.net') {
-          embedURL = `https://player.videasy.net/mov`; 
-          // (Your original code was cut off here - keep your original embed URL logic)
-          // Continue your original server embed URL logic here...
+          embedURL = `https://player.videasy.net/mov/${movieId}`;
+          iframe.src = embedURL;
+          playOverlay.style.display = 'none';
+        } else if (server === 'vidsrc.cc') {
+          embedURL = `https://vidsrc.cc/embed/${movieId}`;
+          resetIframeForVidsrc(iframe, embedURL, playOverlay);
+        } else if (server === 'vidsrc.me') {
+          embedURL = `https://vidsrc.me/embed/${movieId}`;
+          resetIframeForVidsrc(iframe, embedURL, playOverlay);
+        } else if (server === 'vidsrc.to') {
+          embedURL = `https://vidsrc.to/embed/${movieId}`;
+          resetIframeForVidsrc(iframe, embedURL, playOverlay);
         }
-        // Continue your original changeServer logic here...
       }
-      // Continue your original changeServer logic here...
+      tryNextServer(servers.indexOf(currentServer));
     }
 
     // Add your other functions here (showTvDetails, closeModal, closeTvModal, shareMovie, shareTvShow, triggerIframePlay, etc.)
