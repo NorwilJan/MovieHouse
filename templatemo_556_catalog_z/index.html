@@ -1244,12 +1244,40 @@
       document.getElementById("movie-list").innerHTML = "";
       loadMoreMovies(true);
     }
+
+    // ---- FIXED SCROLL GLITCH ----
+    let lastScrollY = 0;
+    let ticking = false;
     window.addEventListener("scroll", function() {
+      // Only load more when not in favorites and not loading/reached end
       if (reachedEnd || isLoading || currentMode === "favorites") return;
       let scrollable = document.documentElement.scrollHeight - window.innerHeight;
       let scrolled = window.scrollY;
       if (scrollable - scrolled < 600) {
         loadMoreMovies();
+      }
+      lastScrollY = window.scrollY;
+    }, { passive: true });
+
+    // Prevent glitch when scrolling up after down - do not force scroll position
+    // Remove any code that forcibly resets scroll position to 0
+    // (There is none in the original, but sometimes the 'resize' event handler can cause it if it reloads)
+    // Instead, remember scroll position and reload content without changing scroll position!
+    let reloadOnResize = false;
+    window.addEventListener('resize', function() {
+      // Only reload once after resize, and only if modal is not open and not favorites
+      if (
+        !reloadOnResize &&
+        document.getElementById('modal').style.display !== 'flex' &&
+        currentMode !== "favorites"
+      ) {
+        reloadOnResize = true;
+        const y = window.scrollY;
+        resetInfiniteScroll();
+        setTimeout(() => {
+          window.scrollTo({ top: y, behavior: "auto" });
+          reloadOnResize = false;
+        }, 250);
       }
     });
 
@@ -1408,11 +1436,6 @@
       resetInfiniteScroll(); // Ensure movies load on page load
     });
 
-    window.addEventListener('resize', function() {
-      if (document.getElementById('modal').style.display !== 'flex' && currentMode !== "favorites") {
-        resetInfiniteScroll();
-      }
-    });
     window.addEventListener("load", function() {
       document.body.classList.add('loaded');
       resetInfiniteScroll();
