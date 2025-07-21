@@ -661,6 +661,7 @@
     let categoryItems = []; // Store the full list of items for the current category
     let isLoading = false;
     let reachedEnd = false;
+    let loadedPages = new Set(); // Track loaded pages to prevent duplicates
 
     // Check if device is mobile or tablet
     function isMobileOrTablet() {
@@ -796,6 +797,7 @@
 
     // FETCH & RENDER
     async function fetchMoviesInf(page = 1) {
+      if (loadedPages.has(page)) return []; // Prevent duplicate page loads
       let url = "";
       if (currentMode === "favorites") {
         renderFavorites();
@@ -823,6 +825,7 @@
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         totalPages = data.total_pages || 1;
+        loadedPages.add(page);
         return data.results || [];
       } catch (e) {
         console.error('Fetch error:', e);
@@ -1157,6 +1160,7 @@
       isLoading = false;
       currentPage = 1;
       reachedEnd = false;
+      loadedPages.clear();
       categoryItems = [];
       document.getElementById("movie-list").innerHTML = "";
       loadMoreMovies(true);
@@ -1164,18 +1168,22 @@
 
     // ---- OPTIMIZED SCROLL/RESIZE ----
     let lastScrollY = 0;
-    let scrollTimeout = null;
+    let lastWidth = window.innerWidth;
+    let scrollTicking = false;
     window.addEventListener("scroll", function() {
       if (reachedEnd || isLoading || currentMode === "favorites") return;
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        let scrollable = document.documentElement.scrollHeight - window.innerHeight;
-        let scrolled = window.scrollY;
-        if (scrollable - scrolled < 600) {
-          loadMoreMovies();
-        }
-        lastScrollY = scrolled;
-      }, 100);
+      if (!scrollTicking) {
+        window.requestAnimationFrame(() => {
+          let scrollable = document.documentElement.scrollHeight - window.innerHeight;
+          let scrolled = window.scrollY;
+          if (scrolled > lastScrollY && scrollable - scrolled < 600) {
+            loadMoreMovies();
+          }
+          lastScrollY = scrolled;
+          scrollTicking = false;
+        });
+        scrollTicking = true;
+      }
     }, { passive: true });
 
     let reloadOnResize = false;
@@ -1188,13 +1196,23 @@
       ) {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
-          reloadOnResize = true;
-          const y = window.scrollY;
-          resetInfiniteScroll();
-          setTimeout(() => {
-            window.scrollTo({ top: y, behavior: "auto" });
-            reloadOnResize = false;
-          }, 250);
+          const currentWidth = window.innerWidth;
+          const isSignificantChange = (
+            (lastWidth <= 767.98 && currentWidth > 767.98) ||
+            (lastWidth > 767.98 && currentWidth <= 767.98) ||
+            (lastWidth <= 1199.98 && currentWidth > 1199.98) ||
+            (lastWidth > 1199.98 && currentWidth <= 1199.98)
+          );
+          if (isSignificantChange) {
+            reloadOnResize = true;
+            const y = window.scrollY;
+            resetInfiniteScroll();
+            setTimeout(() => {
+              window.scrollTo({ top: y, behavior: "auto" });
+              reloadOnResize = false;
+              lastWidth = currentWidth;
+            }, 250);
+          }
         }, 200);
       }
     });
