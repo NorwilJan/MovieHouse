@@ -9,8 +9,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     body {
-      background: #15191e !important;
-      color: #eee !important;
+      background: #15191e;
+      color: #eee;
       font-family: 'Montserrat', Arial, sans-serif;
     }
     .container-fluid, .tm-container-content {
@@ -54,11 +54,6 @@
       .nav-link {
         padding: 0.5rem 1rem;
         font-size: 1.1rem;
-        display: flex;
-        align-items: center;
-      }
-      .nav-text {
-        margin-left: 8px;
       }
       .navbar-toggler {
         border: none;
@@ -341,19 +336,6 @@
     #recently-viewed-list .movie-title {
       font-size: 0.9em;
     }
-    #toggle-recently-viewed {
-      background: #1976d2;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 0.3rem 0.8rem;
-      font-size: 0.9em;
-      transition: background 0.17s;
-    }
-    #toggle-recently-viewed:hover, #toggle-recently-viewed:focus {
-      background: #2196f3;
-      outline: none;
-    }
     #tv-modal-seasons-list {
       margin-top: 1em;
       background: #23272e;
@@ -508,42 +490,6 @@
       opacity: 0.9;
       visibility: visible;
     }
-    .light-theme {
-      background: #f5f5f5 !important;
-      color: #333 !important;
-    }
-    .light-theme .container-fluid, .light-theme .tm-container-content,
-    .light-theme .navbar, .light-theme .navbar-nav, .light-theme .nav-link,
-    .light-theme .tm-text-primary, .light-theme .tm-footer,
-    .light-theme .modal-content, .light-theme .modal,
-    .light-theme .tm-search-form, .light-theme .movie-metadata,
-    .light-theme .modal-body, .light-theme .modal-text,
-    .light-theme .footer, .light-theme .pagination,
-    .light-theme .page-link, .light-theme .chip,
-    .light-theme #genre-filter-form select {
-      background: #fff !important;
-      color: #333 !important;
-      border-color: #ccc !important;
-    }
-    .light-theme .tm-hero,
-    .light-theme #recently-viewed-section,
-    .light-theme #tv-modal-seasons-list {
-      background: #e0e0e0 !important;
-    }
-    .light-theme .movie-poster-img {
-      border: 1px solid #ccc;
-      background: #ddd;
-    }
-    .light-theme .spinner {
-      border-top: 7px solid #1976d2;
-      border: 7px solid #ccc;
-    }
-    .light-theme .empty-state, .light-theme .error-state, .light-theme .loading-state {
-      color: #666;
-    }
-    .light-theme #theme-toggle i {
-      color: #333 !important;
-    }
   </style>
   <script type="text/javascript" data-cfasync="false">
     /*<![CDATA[/* */
@@ -554,9 +500,9 @@
 <body>
   <div class="modal" id="modal">
     <div class="modal-content" id="modal-content-movie">
-      <span class="close" onclick="closeModal()" aria-label="Close modal">×</span>
+      <span class="close" onclick="closeModal()">×</span>
       <div class="modal-body">
-        <img id="modal-image" src="" alt="Movie Poster">
+        <img id="modal-image" src="" alt="Poster">
         <div class="modal-text">
           <h2 id="modal-title"></h2>
           <div class="stars" id="modal-rating"></div>
@@ -585,16 +531,16 @@
       <div id="similar-movies" style="padding: 1rem 2rem;"></div>
     </div>
     <div class="modal-content" id="modal-content-tv" style="display: none;">
-      <span class="close" onclick="closeTvModal()" aria-label="Close modal">×</span>
+      <span class="close" onclick="closeTvModal()">×</span>
       <div class="modal-body">
-        <img id="tv-modal-image" src="" alt="TV Show Poster">
+        <img id="tv-modal-image" src="" alt="Poster">
         <div class="modal-text">
           <h2 id="tv-modal-title"></h2>
           <div class="modal-genre" id="tv-modal-genres"></div>
           <p id="tv-modal-description"></p>
           <div><strong>First Air Date:</strong> <span id="tv-modal-air-date"></span></div>
           <div><strong>Seasons:</strong> <span id="tv-modal-total-seasons"></span></div>
-          <button class="share-btn" id="share-tv-btn" onclick="shareTvShow()">Share</button>
+          <button class="share-btn" id="share-tv-btn" onclick="shareTvShow()" style="margin-bottom: 1em;">Share</button>
           <button class="favorite-btn" id="tv-favorite-btn" title="Add to favorites" aria-label="Add to favorites" tabindex="0">
             <i class="fas fa-heart"></i>
           </button>
@@ -625,28 +571,25 @@
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="navbar-nav ml-auto mb-2 mb-lg-0" id="movie-nav">
           <li class="nav-item">
-            <a class="nav-link nav-link-1 active" id="nav-home" href="#" aria-label="Home"><i class="fas fa-home"></i><span class="nav-text"> Home</span></a>
+            <a class="nav-link nav-link-1 active" id="nav-home" href="#" aria-label="Home"><i class="fas fa-home"></i> Home</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" id="nav-movies" href="#" aria-label="Trending Movies"><i class="fas fa-film"></i><span class="nav-text"> Movies</span></a>
+            <a class="nav-link" id="nav-movies" href="#" aria-label="Trending Movies">Trending Movies</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" id="nav-tvshows" href="#" aria-label="Trending TV Shows"><i class="fas fa-tv"></i><span class="nav-text"> TV Shows</span></a>
+            <a class="nav-link" id="nav-tvshows" href="#" aria-label="Trending TV Shows">Trending TV Shows</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link nav-link-2" id="nav-anime" href="#" aria-label="Trending Anime Movies"><i class="fas fa-dragon"></i><span class="nav-text"> Anime</span></a>
+            <a class="nav-link nav-link-2" id="nav-anime" href="#" aria-label="Trending Anime Movies">Trending Anime Movies</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link nav-link-3" id="nav-tagalog" href="#" aria-label="Trending Tagalog Movies"><i class="fas fa-language"></i><span class="nav-text"> Tagalog</span></a>
+            <a class="nav-link nav-link-3" id="nav-tagalog" href="#" aria-label="Trending Tagalog Movies">Trending Tagalog Movies</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" id="nav-netflix" href="#" aria-label="Trending Netflix"><i class="fab fa-netflix"></i><span class="nav-text"> Netflix</span></a>
+            <a class="nav-link" id="nav-netflix" href="#" aria-label="Trending Netflix"><i class="fab fa-netflix"></i> Trending Netflix</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" id="nav-favorites" href="#" title="Favorites" aria-label="Favorites"><i class="fas fa-heart"></i><span class="nav-text"> Favorites</span></a>
-          </li>
-          <li class="nav-item">
-            <button id="theme-toggle" class="nav-link" aria-label="Toggle theme"><i class="fas fa-moon"></i></button>
+            <a class="nav-link" id="nav-favorites" href="#" title="Favorites" aria-label="Favorites"><i class="fas fa-heart"></i> Favorites</a>
           </li>
         </ul>
       </div>
@@ -664,12 +607,7 @@
 
   <div class="container-fluid tm-container-content tm-mt-60">
     <div id="recently-viewed-section" style="display: none;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.7em;">
-        <h5 style="color: #fff;">Recently Viewed</h5>
-        <button id="toggle-recently-viewed" class="btn btn-outline-primary">
-          <i class="fas fa-eye-slash"></i> Hide
-        </button>
-      </div>
+      <h5 style="color: #fff; margin-bottom: 0.7em;">Recently Viewed</h5>
       <div id="recently-viewed-list"></div>
     </div>
     <div class="row mb-4">
@@ -724,7 +662,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js"></script>
   <script>
-<script>
     // --- CONFIG ---
     const apiKey = '40f1982842db35042e8561b13b38d492';
     const imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
@@ -828,7 +765,7 @@
         movieGenres = movieData.genres || [];
         tvGenres = tvData.genres || [];
         populateGenreFilter();
-        genreFilter.disabled = false;
+        genreFilter.disabled = false; // Enable after loading
       } catch (e) {
         console.error('Error fetching genres:', e);
         genreFilter.innerHTML = '<option value="" id="genre-all">Failed to load genres</option>';
@@ -891,7 +828,6 @@
         movieList.innerHTML = `<div class="empty-state">You have no favorite movies or TV shows yet ❤️.</div>`;
         return;
       }
-      movieList.innerHTML = `<div class="spinner"></div><p class="loading-state">Loading favorites...</p>`;
       Promise.all(favorites.map(item =>
         fetch(`https://api.themoviedb.org/3/${item.media_type}/${item.id}?api_key=${apiKey}`)
           .then(r => r.json())
@@ -934,7 +870,7 @@
         section.style.display = "none";
         return;
       }
-      section.style.display = localStorage.getItem('recentlyViewedHidden') === 'true' ? "none" : "";
+      section.style.display = "";
       list.innerHTML = "";
       recentlyViewed.forEach(item => {
         const div = document.createElement("div");
@@ -957,13 +893,6 @@
         };
         list.appendChild(div);
       });
-    }
-    function toggleRecentlyViewed() {
-      const section = document.getElementById('recently-viewed-section');
-      const isHidden = section.style.display === 'none';
-      section.style.display = isHidden ? '' : 'none';
-      localStorage.setItem('recentlyViewedHidden', isHidden ? 'false' : 'true');
-      document.getElementById('toggle-recently-viewed').innerHTML = isHidden ? '<i class="fas fa-eye-slash"></i> Hide' : '<i class="fas fa-eye"></i> Show';
     }
 
     // Fetch & Render (UNCHANGED)
@@ -1241,7 +1170,6 @@
         };
         document.getElementById('tv-modal-seasons-list').appendChild(seasonDiv);
       }
-      addRecentlyViewed({ ...tvInfo, media_type: 'tv' });
     }
     function closeTvModal() {
       closeModal();
@@ -1351,7 +1279,6 @@
         loadMoreMovies();
       }
       lastScrollY = scrolled;
-      document.getElementById('back-to-top').classList.toggle('visible', scrolled > 300);
     }, 100);
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -1446,148 +1373,170 @@
       }
     }
 
-    // SHARING
-    function shareMovie() {
-      if (!lastModalMovie) return;
-      const url = window.location.href.split('?')[0];
-      const text = `Check out ${lastModalMovie.title} on MovieDck!`;
-      if (navigator.share && isMobileOrTablet()) {
-        navigator.share({ title: lastModalMovie.title, text: text, url: url })
-          .catch(err => console.warn('Share failed:', err));
-      } else {
-        navigator.clipboard.writeText(`${text} ${url}`)
-          .then(() => alert('Link copied to clipboard!'))
-          .catch(err => console.warn('Clipboard copy failed:', err));
-      }
-    }
-    function shareTvShow() {
-      if (!tvModalData.tvId) return;
-      const url = window.location.href.split('?')[0];
-      const text = `Check out this TV show on MovieDck!`;
-      if (navigator.share && isMobileOrTablet()) {
-        navigator.share({ title: document.getElementById('tv-modal-title').textContent, text: text, url: url })
-          .catch(err => console.warn('Share failed:', err));
-      } else {
-        navigator.clipboard.writeText(`${text} ${url}`)
-          .then(() => alert('Link copied to clipboard!'))
-          .catch(err => console.warn('Clipboard copy failed:', err));
-      }
-    }
-
-    // THEME TOGGLE
-    function toggleTheme() {
-      const isDark = document.body.classList.contains('light-theme');
-      document.body.classList.toggle('light-theme', !isDark);
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
-      document.getElementById('theme-toggle').innerHTML = isDark ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
-    }
-
-    // DOMContentLoaded
     document.addEventListener("DOMContentLoaded", function() {
       const movieIframe = document.getElementById('modal-video');
       const tvIframe = document.getElementById('tv-episode-player');
       handleFullscreenOrientation(movieIframe);
       handleFullscreenOrientation(tvIframe);
 
-      // Load theme
-      const savedTheme = localStorage.getItem('theme') || 'dark';
-      if (savedTheme === 'light') {
-        document.body.classList.add('light-theme');
-        document.getElementById('theme-toggle').innerHTML = '<i class="fas fa-sun"></i>';
-      }
+      fetchGenres();
 
-      // Initialize recently viewed
-      renderRecentlyViewed();
-
-      // Navigation
-      document.getElementById('nav-home').onclick = (e) => { e.preventDefault(); switchMode('popular'); };
-      document.getElementById('nav-movies').onclick = (e) => { e.preventDefault(); switchMode('popular'); };
-      document.getElementById('nav-tvshows').onclick = (e) => { e.preventDefault(); switchMode('tv'); };
-      document.getElementById('nav-anime').onclick = (e) => { e.preventDefault(); switchMode('anime'); };
-      document.getElementById('nav-tagalog').onclick = (e) => { e.preventDefault(); switchMode('tagalog'); };
-      document.getElementById('nav-netflix').onclick = (e) => { e.preventDefault(); switchMode('netflix'); };
-      document.getElementById('nav-favorites').onclick = (e) => { e.preventDefault(); switchMode('favorites'); };
-      document.getElementById('theme-toggle').onclick = toggleTheme;
-
-      // Search
-      document.getElementById('movie-search-form').onsubmit = async function(e) {
-        e.preventDefault();
-        const query = document.getElementById('movie-search-input').value.trim();
-        if (!query) return;
-        currentQuery = query;
-        currentMode = "search";
-        currentGenre = "";
-        document.getElementById('section-title').textContent = `Search Results for "${query}"`;
-        document.get
-<script>
-    // Continuing from movie-search-form.onsubmit
-    document.getElementById('movie-search-form').onsubmit = async function(e) {
-        e.preventDefault();
-        const query = document.getElementById('movie-search-input').value.trim();
-        if (!query) return;
-        currentQuery = query;
-        currentMode = "search";
-        currentGenre = "";
-        document.getElementById('section-title').textContent = `Search Results for "${query}"`;
-        document.getElementById('genre-filter-form').style.display = 'flex';
-        setActiveNav('search');
-        genreFilter.value = "";
-        populateGenreFilter();
-        resetInfiniteScroll();
-    };
-
-    // Genre filter
-    document.getElementById('genre-filter').onchange = function() {
-        currentGenre = this.value;
-        resetInfiniteScroll();
-    };
-
-    // Clear genre filter
-    document.getElementById('clear-genre-btn').onclick = function() {
-        currentGenre = "";
-        genreFilter.value = "";
-        resetInfiniteScroll();
-    };
-
-    // Toggle recently viewed
-    document.getElementById('toggle-recently-viewed').onclick = toggleRecentlyViewed;
-
-    // Back to top
-    document.getElementById('back-to-top').onclick = function() {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-        if (e.key === 'Escape' && document.getElementById('modal').style.display === 'flex') {
-            closeModal();
-        } else if (e.key === '/' || e.key === 's') {
-            e.preventDefault();
-            document.getElementById('movie-search-input').focus();
-        } else if (e.key === 'h') {
-            switchMode('popular');
-        } else if (e.key === 'm') {
-            switchMode('popular');
-        } else if (e.key === 't') {
-            switchMode('tv');
-        } else if (e.key === 'a') {
-            switchMode('anime');
-        } else if (e.key === 'g') {
-            switchMode('tagalog');
-        } else if (e.key === 'n') {
-            switchMode('netflix');
-        } else if (e.key === 'f') {
-            switchMode('favorites');
-        } else if (e.key === 'l') {
-            toggleTheme();
+      const backToTopBtn = document.getElementById('back-to-top');
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 400) {
+          backToTopBtn.classList.add('visible');
+        } else {
+          backToTopBtn.classList.remove('visible');
         }
+      });
+      backToTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      document.getElementById('nav-home').onclick = function(e) {
+        e.preventDefault();
+        switchMode('popular');
+        document.getElementById('movie-search-input').value = '';
+        document.getElementById('genre-filter').value = '';
+      };
+      document.getElementById('nav-movies').onclick = function(e) { e.preventDefault(); switchMode('popular'); };
+      document.getElementById('nav-tvshows').onclick = function(e) { e.preventDefault(); switchMode('tv'); };
+      document.getElementById('nav-anime').onclick = function(e) { e.preventDefault(); switchMode('anime'); };
+      document.getElementById('nav-tagalog').onclick = function(e) { e.preventDefault(); switchMode('tagalog'); };
+      document.getElementById('nav-favorites').onclick = function(e) { e.preventDefault(); switchMode('favorites'); };
+      document.getElementById('nav-netflix').onclick = function(e) {
+        e.preventDefault();
+        let nav = document.getElementById('nav-netflix').parentNode;
+        if (!document.getElementById("netflix-switcher")) {
+          let switcher = document.createElement("div");
+          switcher.id = "netflix-switcher";
+          switcher.style = "margin-top: 6px; margin-bottom: 2px;";
+          switcher.innerHTML = `<button id="netflix-movie-btn" class="btn btn-danger btn-sm" style="margin-right: 7px;">Movies</button>
+            <button id="netflix-tv-btn" class="btn btn-danger btn-sm">TV Shows</button>`;
+          nav.appendChild(switcher);
+          document.getElementById("netflix-movie-btn").onclick = function(ev) {
+            ev.preventDefault();
+            netflixType = "movie";
+            switchMode("netflix");
+            nav.removeChild(switcher);
+          };
+          document.getElementById("netflix-tv-btn").onclick = function(ev) {
+            ev.preventDefault();
+            netflixType = "tv";
+            switchMode("netflix");
+            nav.removeChild(switcher);
+          };
+        }
+      };
+      const form = document.getElementById('movie-search-form');
+      const input = document.getElementById('movie-search-input');
+      const sectionTitle = document.getElementById('section-title');
+      form.onsubmit = function(e) {
+        e.preventDefault();
+        const q = input.value.trim();
+        if (q.length > 0) {
+          currentMode = "search";
+          currentQuery = q;
+          currentGenre = "";
+          sectionTitle.textContent = `Search Results for "${q}"`;
+          document.getElementById('genre-filter-form').style.display = 'none';
+          setActiveNav("");
+          resetInfiniteScroll();
+        } else {
+          switchMode('popular');
+        }
+      };
+      input.addEventListener('input', function() {
+        if (currentMode === "search" && this.value.trim().length === 0) {
+          switchMode('popular');
+          document.getElementById('genre-filter-form').style.display = 'flex';
+        }
+      });
+      genreFilter.onchange = function() {
+        currentGenre = genreFilter.value;
+        if (currentMode === "favorites") {
+          const filteredItems = currentGenre
+            ? categoryItems.filter(item =>
+                item.genre_ids?.includes(parseInt(currentGenre)) ||
+                item.genres?.some(g => g.id === parseInt(currentGenre))
+              )
+            : categoryItems;
+          renderMovies(filteredItems, true);
+          genreFilter.focus();
+        } else {
+          resetInfiniteScroll();
+          genreFilter.focus();
+        }
+        genreFilter.setAttribute('aria-activedescendant', genreFilter.options[genreFilter.selectedIndex].id || '');
+      };
+      document.getElementById('clear-genre-btn').onclick = function() {
+        genreFilter.value = "";
+        currentGenre = "";
+        if (currentMode === "favorites") {
+          renderFavorites();
+        } else {
+          resetInfiniteScroll();
+        }
+        genreFilter.focus();
+      };
+      renderRecentlyViewed();
+      resetInfiniteScroll();
     });
 
-    // Fetch genres and initial movies
-    fetchGenres();
-    loadMoreMovies(true);
-});
-</script>
+    window.addEventListener("load", function() {
+      document.body.classList.add('loaded');
+      resetInfiniteScroll();
+      renderRecentlyViewed();
+    });
+
+    function shareMovie() {
+      if (!lastModalMovie) return;
+      const url = `${location.origin}${location.pathname}?mid=${lastModalMovie.id}`;
+      if (navigator.share) {
+        navigator.share({
+          title: lastModalMovie.title,
+          text: "Check out this movie on MovieDck!",
+          url
+        });
+      } else {
+        navigator.clipboard.writeText(url);
+        const btn = document.getElementById('share-movie-btn');
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = "Share"; }, 1200);
+      }
+    }
+    function shareTvShow() {
+      if (!document.getElementById('tv-modal-title').textContent) return;
+      const url = location.href.split('?')[0];
+      if (navigator.share) {
+        navigator.share({
+          title: document.getElementById('tv-modal-title').textContent,
+          text: "Check out this TV show on MovieDck!",
+          url
+        });
+      } else {
+        navigator.clipboard.writeText(url);
+        const btn = document.getElementById('share-tv-btn');
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = "Share"; }, 1200);
+      }
+    }
+    (function() {
+      const params = new URLSearchParams(location.search);
+      if (params.has("mid")) {
+        fetch(`https://api.themoviedb.org/3/movie/${params.get("mid")}?api_key=${apiKey}`).then(r => r.json()).then(showDetails);
+      }
+    })();
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === "/") {
+        e.preventDefault();
+        document.getElementById('movie-search-input').focus();
+      }
+      if (e.key === "Escape" && document.getElementById('modal').style.display === 'flex') {
+        closeModal();
+      }
+    });
+  </script>
 </body>
 </html>
