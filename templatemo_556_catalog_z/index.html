@@ -418,12 +418,6 @@
       transform: translate(-50%, -50%) scale(1.1);
       outline: none;
     }
-    .iframe-container {
-      position: relative;
-      display: inline-block;
-      width: 98%;
-      margin: 1rem auto 0;
-    }
     .genre-filter-form {
       margin-top: 1rem;
       width: 100%;
@@ -470,6 +464,16 @@
     #back-to-top.visible {
       opacity: 0.9;
       visibility: visible;
+    }
+    #home-btn {
+      color: #eee !important;
+      font-size: 1.5rem;
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+    }
+    #home-btn:hover, #home-btn:focus {
+      color: #2196f3 !important;
     }
   </style>
   <script type="text/javascript" data-cfasync="false">
@@ -542,6 +546,7 @@
 
   <nav class="navbar navbar-expand-lg">
     <div class="container-fluid">
+      <a class="nav-link" id="home-btn" href="#" aria-label="Home"><i class="fas fa-home"></i></a>
       <a class="navbar-brand d-flex align-items-center" href="index.html">
         <span class="logo-text">MovieDck</span>
       </a>
@@ -1292,14 +1297,25 @@
     window.addEventListener('resize', handleResize);
 
     // NAVBAR
-    function switchMode(newMode) {
-      if (currentMode === newMode && !(newMode === 'search' && currentQuery)) return;
+    function switchMode(newMode, netflixTypeParam = "movie") {
+      if (currentMode === newMode && !(newMode === 'search' && currentQuery) && (newMode !== 'netflix' || netflixType === netflixTypeParam)) return;
       currentMode = newMode;
+      netflixType = netflixTypeParam;
       currentQuery = "";
-      if (newMode !== "search") currentGenre = localStorage.getItem('currentGenre') || "";
+      currentGenre = "";
       document.getElementById('nav-favorites').classList.remove('favorited');
       let sectionTitle = document.getElementById('section-title');
-      genreFilterForm.style.display = newMode === "search" ? 'none' : 'flex';
+      genreFilterForm.style.display = 'flex';
+
+      const params = new URLSearchParams();
+      if (newMode !== "popular") {
+        params.set("mode", newMode);
+        if (newMode === "netflix") {
+          params.set("netflixType", netflixType);
+        }
+      }
+      const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+      window.history.pushState({ mode: newMode, netflixType }, '', newUrl);
 
       if (newMode === "anime") {
         sectionTitle.textContent = "Trending Anime Movies";
@@ -1316,11 +1332,8 @@
         sectionTitle.textContent = "Trending Movies";
       }
       setActiveNav(newMode);
-      genreFilter.value = currentGenre || "";
+      genreFilter.value = "";
       populateGenreFilter();
-      localStorage.setItem('currentMode', currentMode);
-      localStorage.setItem('netflixType', netflixType);
-      localStorage.setItem('currentGenre', currentGenre);
       if (currentMode === "favorites") {
         renderFavorites();
         reachedEnd = true;
@@ -1343,7 +1356,6 @@
       } else if (mode === "netflix") {
         document.getElementById('nav-netflix').classList.add('active');
       } else if (mode === "favorites") {
-        // handled separately for heart color
       } else {
         document.getElementById('nav-movies').classList.add('active');
       }
@@ -1355,24 +1367,20 @@
       handleFullscreenOrientation(movieIframe);
       handleFullscreenOrientation(tvIframe);
 
-      // Restore state from localStorage
-      const savedMode = localStorage.getItem('currentMode');
-      const savedNetflixType = localStorage.getItem('netflixType');
-      const savedGenre = localStorage.getItem('currentGenre');
+      const params = new URLSearchParams(window.location.search);
+      const modeFromUrl = params.get("mode");
+      const netflixTypeFromUrl = params.get("netflixType") || "movie";
       const validModes = ["popular", "tv", "anime", "tagalog", "netflix", "favorites"];
-      if (savedMode && validModes.includes(savedMode)) {
-        currentMode = savedMode;
-        if (savedMode === "netflix" && savedNetflixType) {
-          netflixType = savedNetflixType === "movie" || savedNetflixType === "tv" ? savedNetflixType : "movie";
-        }
-        if (savedGenre && savedMode !== "search") {
-          currentGenre = savedGenre;
+      if (modeFromUrl && validModes.includes(modeFromUrl)) {
+        currentMode = modeFromUrl;
+        if (modeFromUrl === "netflix") {
+          netflixType = netflixTypeFromUrl === "tv" ? "tv" : "movie";
         }
       }
 
-      fetchGenres().then(() => {
-        switchMode(currentMode); // Restore the saved mode or default to "popular"
-      });
+      fetchGenres();
+      renderRecentlyViewed();
+      switchMode(currentMode, netflixType);
 
       const backToTopBtn = document.getElementById('back-to-top');
       window.addEventListener('scroll', () => {
@@ -1386,6 +1394,10 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
 
+      document.getElementById('home-btn').onclick = function(e) {
+        e.preventDefault();
+        switchMode('popular');
+      };
       document.getElementById('nav-movies').onclick = function(e) { e.preventDefault(); switchMode('popular'); };
       document.getElementById('nav-tvshows').onclick = function(e) { e.preventDefault(); switchMode('tv'); };
       document.getElementById('nav-anime').onclick = function(e) { e.preventDefault(); switchMode('anime'); };
@@ -1403,14 +1415,12 @@
           nav.appendChild(switcher);
           document.getElementById("netflix-movie-btn").onclick = function(ev) {
             ev.preventDefault();
-            netflixType = "movie";
-            switchMode("netflix");
+            switchMode("netflix", "movie");
             nav.removeChild(switcher);
           };
           document.getElementById("netflix-tv-btn").onclick = function(ev) {
             ev.preventDefault();
-            netflixType = "tv";
-            switchMode("netflix");
+            switchMode("netflix", "tv");
             nav.removeChild(switcher);
           };
         }
@@ -1428,21 +1438,24 @@
           sectionTitle.textContent = `Search Results for "${q}"`;
           genreFilterForm.style.display = 'none';
           setActiveNav("");
-          localStorage.setItem('currentMode', currentMode);
-          localStorage.setItem('currentGenre', currentGenre);
+          const params = new URLSearchParams();
+          params.set("mode", "search");
+          params.set("query", q);
+          window.history.pushState({ mode: "search", query: q }, '', `${window.location.pathname}?${params.toString()}`);
           resetInfiniteScroll();
         } else {
           switchMode('popular');
+          genreFilterForm.style.display = 'flex';
         }
       };
       input.addEventListener('input', function() {
         if (currentMode === "search" && this.value.trim().length === 0) {
           switchMode('popular');
+          genreFilterForm.style.display = 'flex';
         }
       });
       genreFilter.onchange = function() {
         currentGenre = genreFilter.value;
-        localStorage.setItem('currentGenre', currentGenre);
         if (currentMode === "favorites") {
           const filteredItems = currentGenre
             ? categoryItems.filter(item =>
@@ -1455,12 +1468,36 @@
           resetInfiniteScroll();
         }
       };
-      renderRecentlyViewed();
+
+      window.addEventListener('popstate', function(event) {
+        const state = event.state || {};
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get("mode") || "popular";
+        const netflixType = params.get("netflixType") || "movie";
+        const query = params.get("query") || "";
+        if (mode === "search" && query) {
+          currentMode = "search";
+          currentQuery = query;
+          currentGenre = "";
+          sectionTitle.textContent = `Search Results for "${query}"`;
+          genreFilterForm.style.display = 'none';
+          setActiveNav("");
+          resetInfiniteScroll();
+        } else if (validModes.includes(mode)) {
+          currentMode = mode;
+          currentQuery = "";
+          currentGenre = "";
+          netflixType = (mode === "netflix" && netflixType === "tv") ? "tv" : "movie";
+          switchMode(mode, netflixType);
+        } else {
+          switchMode("popular");
+        }
+      });
     });
 
     window.addEventListener("load", function() {
       document.body.classList.add('loaded');
-      renderRecentlyViewed();
+      renderRecentlyReviewed();
     });
 
     function shareMovie() {
