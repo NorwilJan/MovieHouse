@@ -672,15 +672,16 @@
     const movieList = document.getElementById('movie-list');
     const infiniteLoader = document.getElementById('infinite-loader');
     const genreFilter = document.getElementById('genre-filter');
+    const genreFilterForm = document.getElementById('genre-filter-form');
 
     // Throttle function
     function throttle(func, limit) {
       let inThrottle;
-      return function(...args) {
+      return function (...args) {
         if (!inThrottle) {
           func.apply(this, args);
           inThrottle = true;
-          setTimeout(() => inThrottle = false, limit);
+          setTimeout(() => (inThrottle = false), limit);
         }
       };
     }
@@ -732,6 +733,8 @@
     // Fetch genres
     async function fetchGenres() {
       try {
+        genreFilter.disabled = true;
+        genreFilterForm.style.display = 'none';
         const [movieRes, tvRes] = await Promise.all([
           fetch(`https://api.themoviedb.org/3/genre/movie/list?api_key=${apiKey}`),
           fetch(`https://api.themoviedb.org/3/genre/tv/list?api_key=${apiKey}`)
@@ -742,9 +745,12 @@
         movieGenres = movieData.genres || [];
         tvGenres = tvData.genres || [];
         populateGenreFilter();
+        genreFilterForm.style.display = 'flex';
       } catch (e) {
         console.error('Error fetching genres:', e);
         genreFilter.innerHTML = '<option value="">Failed to load genres</option>';
+        genreFilter.disabled = false;
+        genreFilterForm.style.display = 'flex';
       }
     }
 
@@ -895,6 +901,7 @@
       }
       try {
         genreFilter.disabled = true;
+        infiniteLoader.style.display = "";
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
@@ -911,6 +918,7 @@
         return [];
       } finally {
         genreFilter.disabled = false;
+        infiniteLoader.style.display = "none";
       }
     }
     function renderMovies(items, clear = false) {
@@ -1288,34 +1296,31 @@
       if (currentMode === newMode && !(newMode === 'search' && currentQuery)) return;
       currentMode = newMode;
       currentQuery = "";
-      currentGenre = "";
+      if (newMode !== "search") currentGenre = localStorage.getItem('currentGenre') || "";
       document.getElementById('nav-favorites').classList.remove('favorited');
       let sectionTitle = document.getElementById('section-title');
-      const genreFilterForm = document.getElementById('genre-filter-form');
+      genreFilterForm.style.display = newMode === "search" ? 'none' : 'flex';
 
       if (newMode === "anime") {
         sectionTitle.textContent = "Trending Anime Movies";
-        genreFilterForm.style.display = 'flex';
       } else if (newMode === "tagalog") {
         sectionTitle.textContent = "Trending Tagalog Movies";
-        genreFilterForm.style.display = 'flex';
       } else if (newMode === "favorites") {
         sectionTitle.textContent = "Your Favorite Movies & TV Shows";
         document.getElementById('nav-favorites').classList.add('favorited');
-        genreFilterForm.style.display = 'flex';
       } else if (newMode === "tv") {
         sectionTitle.textContent = "Trending TV Shows";
-        genreFilterForm.style.display = 'flex';
       } else if (newMode === "netflix") {
         sectionTitle.textContent = `Trending Netflix ${netflixType === "movie" ? "Movies" : "TV Shows"}`;
-        genreFilterForm.style.display = 'flex';
       } else {
         sectionTitle.textContent = "Trending Movies";
-        genreFilterForm.style.display = 'flex';
       }
       setActiveNav(newMode);
-      genreFilter.value = "";
+      genreFilter.value = currentGenre || "";
       populateGenreFilter();
+      localStorage.setItem('currentMode', currentMode);
+      localStorage.setItem('netflixType', netflixType);
+      localStorage.setItem('currentGenre', currentGenre);
       if (currentMode === "favorites") {
         renderFavorites();
         reachedEnd = true;
@@ -1350,7 +1355,24 @@
       handleFullscreenOrientation(movieIframe);
       handleFullscreenOrientation(tvIframe);
 
-      fetchGenres();
+      // Restore state from localStorage
+      const savedMode = localStorage.getItem('currentMode');
+      const savedNetflixType = localStorage.getItem('netflixType');
+      const savedGenre = localStorage.getItem('currentGenre');
+      const validModes = ["popular", "tv", "anime", "tagalog", "netflix", "favorites"];
+      if (savedMode && validModes.includes(savedMode)) {
+        currentMode = savedMode;
+        if (savedMode === "netflix" && savedNetflixType) {
+          netflixType = savedNetflixType === "movie" || savedNetflixType === "tv" ? savedNetflixType : "movie";
+        }
+        if (savedGenre && savedMode !== "search") {
+          currentGenre = savedGenre;
+        }
+      }
+
+      fetchGenres().then(() => {
+        switchMode(currentMode); // Restore the saved mode or default to "popular"
+      });
 
       const backToTopBtn = document.getElementById('back-to-top');
       window.addEventListener('scroll', () => {
@@ -1404,8 +1426,10 @@
           currentQuery = q;
           currentGenre = "";
           sectionTitle.textContent = `Search Results for "${q}"`;
-          document.getElementById('genre-filter-form').style.display = 'none';
+          genreFilterForm.style.display = 'none';
           setActiveNav("");
+          localStorage.setItem('currentMode', currentMode);
+          localStorage.setItem('currentGenre', currentGenre);
           resetInfiniteScroll();
         } else {
           switchMode('popular');
@@ -1414,11 +1438,11 @@
       input.addEventListener('input', function() {
         if (currentMode === "search" && this.value.trim().length === 0) {
           switchMode('popular');
-          document.getElementById('genre-filter-form').style.display = 'flex';
         }
       });
       genreFilter.onchange = function() {
         currentGenre = genreFilter.value;
+        localStorage.setItem('currentGenre', currentGenre);
         if (currentMode === "favorites") {
           const filteredItems = currentGenre
             ? categoryItems.filter(item =>
@@ -1432,12 +1456,10 @@
         }
       };
       renderRecentlyViewed();
-      resetInfiniteScroll();
     });
 
     window.addEventListener("load", function() {
       document.body.classList.add('loaded');
-      resetInfiniteScroll();
       renderRecentlyViewed();
     });
 
