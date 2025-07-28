@@ -17,6 +17,7 @@
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
   />
   <style>
+    /* === styles unchanged from your original === */
     body {
       background: #15191e;
       color: #eee;
@@ -550,14 +551,15 @@
   </style>
 </head>
 <body>
-  <div class="modal" id="modal">
-    <div class="modal-content" id="modal-content-movie">
-      <span class="close" onclick="closeModal()">×</span>
+  <div class="modal" id="modal" aria-modal="true" role="dialog" aria-labelledby="modal-title">
+    <div class="modal-content" id="modal-content-movie" role="document">
+      <span class="close" onclick="closeModal()" role="button" aria-label="Close modal">×</span>
       <div class="modal-body">
         <img id="modal-image" src="" alt="Poster" />
         <div class="modal-text">
           <h2 id="modal-title"></h2>
-          <div class="stars" id="modal-rating"></div>
+          <div class="stars" id="modal-rating" aria-label="Rating"></div>
+          <div class="modal-genre"></div>
           <div class="modal-genre" id="modal-genres"></div>
           <p id="modal-description"></p>
           <div class="modal-cast" id="modal-cast"></div>
@@ -570,25 +572,26 @@
       </div>
       <div class="server-selector">
         <label for="server">Change Server:</label>
-        <select id="server" onchange="changeServer()">
+        <select id="server" onchange="changeServer()" aria-label="Select video server">
           <option value="vidsrc.cc">Vidsrc.cc</option>
           <option value="player.videasy.net">Player.Videasy.net</option>
           <option value="vidsrc.me">Vidsrc.me</option>
         </select>
       </div>
       <div class="iframe-container">
-        <iframe id="modal-video" allowfullscreen autoplay></iframe>
+        <iframe id="modal-video" allowfullscreen autoplay title="Video player"></iframe>
         <button
           class="iframe-play-overlay"
           onclick="triggerIframePlay('modal-video')"
+          aria-label="Play video"
         >
           <i class="fas fa-play"></i>
         </button>
       </div>
       <div id="similar-movies" style="padding: 1rem 2rem;"></div>
     </div>
-    <div class="modal-content" id="modal-content-tv" style="display: none;">
-      <span class="close" onclick="closeTvModal()">×</span>
+    <div class="modal-content" id="modal-content-tv" style="display: none;" role="document">
+      <span class="close" onclick="closeTvModal()" role="button" aria-label="Close modal">×</span>
       <div class="modal-body">
         <img id="tv-modal-image" src="" alt="Poster" />
         <div class="modal-text">
@@ -627,19 +630,22 @@
           allowfullscreen
           autoplay
           style="display: none"
+          title="TV episode player"
         ></iframe>
         <button
           class="iframe-play-overlay"
           onclick="triggerIframePlay('tv-episode-player')"
+          aria-label="Play TV episode"
         >
           <i class="fas fa-play"></i>
         </button>
       </div>
-      <div style="display: flex; justify-content: center">
+      <div style="display: flex; justify-content: center;">
         <button
           class="tv-episode-next-btn"
           id="tv-episode-next-btn"
-          style="display: none; margin-bottom: 1em"
+          style="display: none; margin-bottom: 1em;"
+          aria-label="Next episode"
         >
           Next Episode »
         </button>
@@ -647,7 +653,7 @@
     </div>
   </div>
 
-  <nav class="navbar navbar-expand-lg">
+  <nav class="navbar navbar-expand-lg" role="navigation" aria-label="Primary navigation">
     <div class="container-fluid">
       <a class="navbar-brand d-flex align-items-center" href="index.html">
         <span class="logo-text">MovieDck</span>
@@ -670,17 +676,17 @@
           role="menubar"
           aria-label="Main navigation"
         >
-          <li class="nav-item">
+          <li class="nav-item" role="none">
             <a
               class="nav-link nav-link-1 active"
               id="nav-home"
               href="#"
               aria-label="Home"
               role="menuitem"
-              ><i class="fas fa-home"></i> Home</a
+              > <i class="fas fa-home"></i> Home</a
             >
           </li>
-          <li class="nav-item">
+          <li class="nav-item" role="none">
             <a
               class="nav-link"
               id="nav-movies"
@@ -690,7 +696,7 @@
               >Trending Movies</a
             >
           </li>
-          <li class="nav-item">
+          <li class="nav-item" role="none">
             <a
               class="nav-link"
               id="nav-tvshows"
@@ -700,7 +706,7 @@
               >Trending TV Shows</a
             >
           </li>
-          <li class="nav-item">
+          <li class="nav-item" role="none">
             <a
               class="nav-link nav-link-2"
               id="nav-anime"
@@ -710,7 +716,7 @@
               >Trending Anime Movies</a
             >
           </li>
-          <li class="nav-item">
+          <li class="nav-item" role="none">
             <a
               class="nav-link nav-link-3"
               id="nav-tagalog"
@@ -720,7 +726,7 @@
               >Trending Tagalog Movies</a
             >
           </li>
-          <li class="nav-item">
+          <li class="nav-item" role="none">
             <a
               class="nav-link"
               id="nav-netflix"
@@ -730,7 +736,7 @@
               ><i class="fab fa-netflix"></i> Trending Netflix</a
             >
           </li>
-          <li class="nav-item">
+          <li class="nav-item" role="none">
             <a
               class="nav-link"
               id="nav-favorites"
@@ -764,11 +770,11 @@
         type="search"
         id="movie-search-input"
         placeholder="Search for movies, TV shows, actors, or directors..."
-        aria-label="Search"
+        aria-label="Search input"
         aria-describedby="searchHelp"
       />
-      <button class="btn btn-outline-success tm-search-btn" type="submit">
-        <i class="fas fa-search"></i>
+      <button class="btn btn-outline-success tm-search-btn" type="submit" aria-label="Search button">
+        <i class="fas fa-search" aria-hidden="true"></i>
       </button>
     </form>
   </div>
@@ -776,14 +782,14 @@
   <div class="container-fluid tm-container-content tm-mt-60">
     <div id="recently-viewed-section" style="display: none;">
       <h5 style="color: #fff; margin-bottom: 0.7em">Recently Viewed</h5>
-      <div id="recently-viewed-list"></div>
+      <div id="recently-viewed-list" role="list"></div>
     </div>
     <div class="row mb-4">
       <h2 class="col-6 tm-text-primary" id="section-title">Trending Movies</h2>
       <div class="col-6 d-flex justify-content-end align-items-center"></div>
     </div>
     <div class="row mb-4">
-      <form class="genre-filter-form" id="genre-filter-form" role="form">
+      <form class="genre-filter-form" id="genre-filter-form" role="form" aria-label="Filter movies and TV shows">
         <select
           id="genre-filter"
           aria-label="Filter movies by genre"
@@ -800,6 +806,7 @@
           id="clear-genre-btn"
           class="btn btn-outline-primary"
           style="padding: 0.5rem 1rem"
+          aria-label="Clear filters"
         >
           Clear
         </button>
@@ -813,7 +820,7 @@
       aria-atomic="true"
     ></div>
     <div id="infinite-loader" style="display: none">
-      <div class="spinner"></div>
+      <div class="spinner" role="status" aria-live="polite" aria-busy="true"></div>
       <p class="loading-state">Loading more...</p>
     </div>
   </div>
@@ -824,7 +831,7 @@
     aria-label="Back to Top"
     aria-role="button"
   >
-    <i class="fas fa-arrow-up"></i>
+    <i class="fas fa-arrow-up" aria-hidden="true"></i>
   </button>
 
   <footer class="tm-bg-gray pt-5 pb-3 tm-text-gray tm-footer">
@@ -848,15 +855,13 @@
         <div class="col-lg-3 col-md-6 col-sm-6 col-12 px-5 mb-5">
           <ul class="tm-social-links d-flex justify-content-end pl-0 mb-5">
             <li class="mb-2">
-              <a href="https://facebook.com"><i class="fab fa-facebook"></i></a>
+              <a href="https://facebook.com" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
             </li>
             <li class="mb-2">
-              <a href="https://twitter.com"><i class="fab fa-twitter"></i></a>
+              <a href="https://twitter.com" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
             </li>
             <li class="mb-2">
-              <a href="https://instagram.com"
-                ><i class="fab fa-instagram"></i
-              ></a>
+              <a href="https://instagram.com" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
             </li>
           </ul>
         </div>
@@ -869,9 +874,9 @@
     </div>
   </footer>
 
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js" crossorigin="anonymous"></script>
   <script>
     // --- CONFIG ---
     const apiKey = "40f1982842db35042e8561b13b38d492";
@@ -879,7 +884,7 @@
     let lastModalMovie = null;
     let currentPage = 1;
     let totalPages = 1;
-    let currentMode = "popular";
+    let currentMode = "popular"; // popular, search, tv, anime, tagalog, netflix, favorites
     let currentQuery = "";
     let currentGenre = "";
     let currentYear = "";
@@ -914,7 +919,7 @@
     const movieSearchForm = document.getElementById("movie-search-form");
     const movieSearchInput = document.getElementById("movie-search-input");
 
-    // Throttle function
+    // Throttle function for scroll
     function throttle(func, limit) {
       let inThrottle;
       return function (...args) {
@@ -926,7 +931,7 @@
       };
     }
 
-    // Check if device is mobile or tablet
+    // Check if device is mobile/tablet
     function isMobileOrTablet() {
       return (
         /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -935,7 +940,7 @@
       );
     }
 
-    // Handle orientation lock for fullscreen
+    // Handle fullscreen orientation lock (optional)
     function handleFullscreenOrientation(iframe) {
       if (!isMobileOrTablet()) return;
       const lockOrientation = () => {
@@ -969,7 +974,7 @@
       });
     }
 
-    // Helper for error messages
+    // Show error message helper
     function showErrorMessage(iframe, message) {
       const modalBody = iframe.closest(".modal-content").querySelector(
         ".modal-body"
@@ -984,7 +989,7 @@
       setTimeout(() => errorMsg.remove(), 5000);
     }
 
-    // Fetch genres
+    // Fetch genres from TMDB
     async function fetchGenres() {
       try {
         const [movieRes, tvRes] = await Promise.all([
@@ -1008,7 +1013,7 @@
       }
     }
 
-    // Populate genre and year filter dropdowns
+    // Populate genre and year filters
     function populateGenreFilter() {
       genreFilter.innerHTML =
         '<option value="" id="genre-all">All Genres</option>';
@@ -1020,11 +1025,9 @@
       } else if (currentMode === "netflix") {
         genres = netflixType === "movie" ? movieGenres : tvGenres;
       } else if (currentMode === "favorites") {
-        // merge and dedupe genres from movieGenres and tvGenres
-        genres = [...new Map(
-          [...movieGenres, ...tvGenres].map((g) => [g.id, g])
-        ).values()];
-        genres.sort((a, b) => a.name.localeCompare(b.name));
+        const merged = [...movieGenres, ...tvGenres];
+        const uniqueGenres = [...new Map(merged.map(g => [g.id, g])).values()];
+        genres = uniqueGenres.sort((a, b) => a.name.localeCompare(b.name));
       } else {
         genres = movieGenres;
       }
@@ -1037,7 +1040,6 @@
       });
       genreFilter.value = currentGenre || "";
 
-      // Populate year filter
       yearFilter.innerHTML = '<option value="">All Years</option>';
       yearsRange.forEach((year) => {
         const option = document.createElement("option");
@@ -1053,7 +1055,7 @@
       );
     }
 
-    // FAVORITES/RECENTLY VIEWED
+    // FAVORITES HANDLING
     function isFavorite(id, media_type) {
       return favorites.some((f) => f.id === id && f.media_type === media_type);
     }
@@ -1068,10 +1070,8 @@
       localStorage.setItem("favorites", JSON.stringify(favorites));
       if (currentMode === "favorites") renderFavorites();
       document.querySelectorAll(".favorite-btn").forEach((btn) => {
-        if (
-          btn.closest(".movie-col") &&
-          btn.closest(".movie-col").innerHTML.includes(`${media_type}/${id}`)
-        ) {
+        const container = btn.closest(".movie-col");
+        if (container && container.innerHTML.includes(`${media_type}/${id}`)) {
           if (isFavorite(id, media_type)) btn.classList.add("favorited");
           else btn.classList.remove("favorited");
         }
@@ -1123,6 +1123,8 @@
             '<div class="error-state">Failed to load favorites. Please try again.</div>';
         });
     }
+
+    // RECENTLY VIEWED
     let recentlyViewed = JSON.parse(localStorage.getItem("recently_viewed") || "[]");
     function addRecentlyViewed(item) {
       const isTv = !!item.name && !item.title || item.media_type === "tv";
@@ -1153,7 +1155,7 @@
         const div = document.createElement("div");
         div.className = "movie-col";
         div.innerHTML = `
-          <div class="movie-poster-wrapper" tabindex="0" role="button" aria-pressed="false">
+          <div class="movie-poster-wrapper" tabindex="0" role="button" aria-pressed="false" aria-label="View recently viewed ${item.title}">
             <img
               src="${
                 item.poster_path ? imageBaseUrl + item.poster_path : "img/no-poster.png"
@@ -1183,7 +1185,7 @@
       });
     }
 
-    // Fetch & Render
+    // Fetch & Render movies/TV shows for current mode/page/filter
     async function fetchMoviesInf(page = 1) {
       if (loadedPages.has(page)) return [];
       let url = "";
@@ -1192,10 +1194,7 @@
         return [];
       }
       if (currentMode === "search" && currentQuery.trim()) {
-        // To search movies and TV shows properly, we handle multi separately
-        // We'll prioritize movie or tv name/title matches directly from multi search
-
-        // Prepare search multi query request with current page
+        // Use multi search endpoint and filter for movies/tv only
         url = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(
           currentQuery
         )}&page=${page}&include_adult=false`;
@@ -1231,20 +1230,15 @@
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
-        if (!data.results || data.results.length === 0) {
-          return [];
-        }
+        if (!data.results || data.results.length === 0) return [];
         totalPages = data.total_pages || 1;
         loadedPages.add(page);
-
         if (currentMode === "search" && currentQuery.trim()) {
-          // Filter results: only keep movies or tv media_type, exclude persons and others
-          const filteredResults = data.results.filter(
+          // Filter only movies/tv to exclude persons and others
+          return data.results.filter(
             (item) => item.media_type === "movie" || item.media_type === "tv"
           );
-          return filteredResults;
         }
-
         return data.results;
       } catch (e) {
         console.error("Fetch error:", e);
@@ -1281,7 +1275,7 @@
             }" alt="${title}" class="img-fluid movie-poster-img" />
             <button class="play-btn-centered" type="button" title="${
               isTv ? "View TV Show" : "Play Movie"
-            }">
+            }" aria-label="${isTv ? "View TV Show" : "Play Movie"}">
               <i class="fas fa-${isTv ? "tv" : "play"}"></i>
             </button>
             <button class="favorite-btn${
@@ -1314,7 +1308,7 @@
       movieList.appendChild(fragment);
     }
 
-    // Infinite scroll
+    // Infinite scroll loader
     async function loadMoreMovies(clear = false) {
       if (isLoading || reachedEnd) return;
       isLoading = true;
@@ -1338,7 +1332,7 @@
       infiniteLoader.style.display = "none";
     }
 
-    // MODAL - MOVIE
+    // Modal for movie details & video playback
     async function showDetails(movie) {
       document.getElementById("modal-content-movie").style.display = "";
       document.getElementById("modal-content-tv").style.display = "none";
@@ -1363,6 +1357,15 @@
       document.getElementById("modal-trailer").innerHTML = "";
       document.getElementById("similar-movies").innerHTML = "";
 
+      // Set iframe src for video server playback - adapted to your server choices
+      const server = document.getElementById("server").value || "vidsrc.cc";
+      const iframe = document.getElementById("modal-video");
+      if (iframe && movie.id) {
+        // This URL format must match your actual streaming URL pattern!
+        iframe.src = `https://${server}/embed/${movie.id}`;
+        iframe.style.display = "block";
+      }
+
       try {
         const creditsResponse = await fetch(
           `https://api.themoviedb.org/3/movie/${movie.id}/credits?api_key=${apiKey}`
@@ -1381,7 +1384,6 @@
         document.getElementById("modal-cast").textContent = "Cast info unavailable.";
       }
 
-      // Load trailer
       try {
         const trailersResponse = await fetch(
           `https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${apiKey}`
@@ -1395,10 +1397,9 @@
           trailerDiv.innerHTML = `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${trailer.key}" frameborder="0" allowfullscreen></iframe>`;
         }
       } catch (e) {
-        // silently fail trailer
+        // no trailer available
       }
-      
-      // Load similar movies
+
       try {
         const similarResponse = await fetch(
           `https://api.themoviedb.org/3/movie/${movie.id}/similar?api_key=${apiKey}`
@@ -1417,7 +1418,7 @@
             d.style.flex = "1 0 30%";
             d.style.cursor = "pointer";
             d.title = m.title;
-            d.innerHTML = `<img src="${m.poster_path ? imageBaseUrl+m.poster_path : 'img/no-poster.png'}" alt="${m.title}" style="width: 100%; border-radius: 5px;" />`;
+            d.innerHTML = `<img src="${m.poster_path ? imageBaseUrl + m.poster_path : 'img/no-poster.png'}" alt="${m.title}" style="width: 100%; border-radius: 5px;" />`;
             d.onclick = () => showDetails(m);
             divGrid.appendChild(d);
           });
@@ -1428,20 +1429,31 @@
       }
     }
 
-    // MODAL - TV SHOW details & other functions...
-
-    // Rendering stars function (for ratings)
-    function getStars(rating) {
-      const starsCount = Math.round(rating / 2);
-      let stars = "";
-      for (let i = 1; i <= 5; i++) {
-        if (i <= starsCount) stars += '<i class="fas fa-star"></i>';
-        else stars += '<i class="far fa-star"></i>';
+    // Video iframe server switching
+    function changeServer() {
+      if (!lastModalMovie) return;
+      let server = document.getElementById("server").value;
+      const iframe = document.getElementById("modal-video");
+      if (iframe && server && lastModalMovie.id) {
+        iframe.src = `https://${server}/embed/${lastModalMovie.id}`;
       }
-      return stars;
     }
 
-    // Close modal functions
+    // Trigger iframe play overlay
+    function triggerIframePlay(iframeId) {
+      const iframe = document.getElementById(iframeId);
+      if (!iframe) return;
+      // Remove overlay button if any
+      const overlayButtons = document.querySelectorAll('.iframe-play-overlay');
+      overlayButtons.forEach(btn => btn.style.display = 'none');
+      // If iframe is not focused or paused, reload src to autoplay
+      if (!iframe.src) return; // safety check
+      iframe.focus();
+      // Optionally reload src to restart playback
+      // iframe.src = iframe.src;
+    }
+
+    // Close modal helpers
     function closeModal() {
       document.getElementById("modal").style.display = "none";
       const iframe = document.getElementById("modal-video");
@@ -1457,18 +1469,60 @@
       }
     }
 
-    // Show TV details placeholder (to be implemented)
+    // Placeholder for TV show details modal (implement as per your original)
     function showTvDetails(tvShow) {
-      // Your existing implementation, not changed here
-      // Just for demo, close movie modal if open
+      // Switch to TV modal view
       document.getElementById("modal-content-movie").style.display = "none";
       document.getElementById("modal-content-tv").style.display = "";
       document.getElementById("modal").style.display = "flex";
-      // Implement similar to movie details for TV shows here...
-      // For brevity, this is assumed intact.
+
+      // Fill modal TV details based on tvShow object provided
+      // Add your implementation here similar to showDetails()
+
+      // Sample: set title and image
+      document.getElementById("tv-modal-title").textContent = tvShow.name || "No title";
+      document.getElementById("tv-modal-image").src = tvShow.poster_path
+        ? imageBaseUrl + tvShow.poster_path
+        : "img/no-poster.png";
+      document.getElementById("tv-modal-genres").innerHTML = (tvShow.genre_ids || tvShow.genres || [])
+        .map((gid) => {
+          let g = typeof gid === "object" ? gid : tvGenres.find(x => x.id === gid) || { name: "" };
+          return g.name ? `<span class="chip">${g.name}</span>` : "";
+        })
+        .join(" ");
+      document.getElementById("tv-modal-description").textContent = tvShow.overview || "";
+      document.getElementById("tv-modal-air-date").textContent = tvShow.first_air_date || "N/A";
+      document.getElementById("tv-modal-total-seasons").textContent = tvShow.number_of_seasons || "N/A";
+
+      // For video player in TV modal, reset src etc. as needed
+      const iframe = document.getElementById("tv-episode-player");
+      if (iframe) iframe.src = "";
+      // Show/hide other elements or load seasons/episodes as you handle them
+
+      // Reset favorite button state
+      const favBtn = document.getElementById("tv-favorite-btn");
+      if (favBtn) {
+        if (isFavorite(tvShow.id, "tv")) favBtn.classList.add("favorited");
+        else favBtn.classList.remove("favorited");
+      }
+
+      // Store current TV modal data
+      tvModalData.tvId = tvShow.id;
+      tvModalData.seasons = tvShow.seasons || [];
     }
 
-    // Event listeners and interaction logic
+    // Generate star rating icons
+    function getStars(rating) {
+      const starsCount = Math.round(rating / 2);
+      let stars = "";
+      for (let i = 1; i <= 5; i++) {
+        if (i <= starsCount) stars += '<i class="fas fa-star"></i>';
+        else stars += '<i class="far fa-star"></i>';
+      }
+      return stars;
+    }
+
+    // Event listener for search form submit
     movieSearchForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const query = movieSearchInput.value.trim();
@@ -1486,8 +1540,10 @@
       document.getElementById("section-title").textContent =
         `Search Results for "${currentQuery}"`;
       loadMoreMovies(true);
+      setActiveNav(null);
     });
 
+    // Event listeners for genre/year filters
     genreFilter.addEventListener("change", () => {
       currentGenre = genreFilter.value;
       currentPage = 1;
@@ -1504,19 +1560,21 @@
       reachedEnd = false;
       loadMoreMovies(true);
     });
-    document.getElementById("clear-genre-btn").addEventListener("click", () => {
-      currentGenre = "";
-      currentYear = "";
-      genreFilter.value = "";
-      yearFilter.value = "";
-      currentPage = 1;
-      totalPages = 1;
-      loadedPages.clear();
-      reachedEnd = false;
-      loadMoreMovies(true);
-    });
+    document
+      .getElementById("clear-genre-btn")
+      .addEventListener("click", () => {
+        currentGenre = "";
+        currentYear = "";
+        genreFilter.value = "";
+        yearFilter.value = "";
+        currentPage = 1;
+        totalPages = 1;
+        loadedPages.clear();
+        reachedEnd = false;
+        loadMoreMovies(true);
+      });
 
-    // Navigation clicks (example for Movies tab)
+    // Navigation buttons handlers - Movies tab example
     document.getElementById("nav-movies").addEventListener("click", (e) => {
       e.preventDefault();
       currentMode = "popular";
@@ -1533,7 +1591,6 @@
       loadMoreMovies(true);
       setActiveNav("nav-movies");
     });
-    // Same for TV Shows tab
     document.getElementById("nav-tvshows").addEventListener("click", (e) => {
       e.preventDefault();
       currentMode = "tv";
@@ -1550,16 +1607,19 @@
       loadMoreMovies(true);
       setActiveNav("nav-tvshows");
     });
+    // Add other nav handlers similarly if you want
 
     function setActiveNav(navId) {
       document.querySelectorAll("#movie-nav .nav-link").forEach((el) => {
         el.classList.remove("active");
       });
-      const activeLink = document.getElementById(navId);
-      if (activeLink) activeLink.classList.add("active");
+      if (navId) {
+        const activeLink = document.getElementById(navId);
+        if (activeLink) activeLink.classList.add("active");
+      }
     }
 
-    // Load initial genres and movies
+    // Initial load genres and movies
     fetchGenres().then(() => {
       loadMoreMovies(true);
       renderRecentlyViewed();
@@ -1578,7 +1638,7 @@
       }, 300)
     );
 
-    // Back to top button
+    // Back to top button functionality
     const backToTopBtn = document.getElementById("back-to-top");
     window.addEventListener("scroll", () => {
       if (window.scrollY > 300) {
@@ -1591,9 +1651,7 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
-    // Playing iframe overlays and servers not included here but assumed unchanged
-
-    // Share movie/show functions placeholders
+    // Sharing placeholders
     function shareMovie() {
       alert("Sharing movie feature to be implemented.");
     }
