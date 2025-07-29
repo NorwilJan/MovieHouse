@@ -433,7 +433,7 @@
       align-items: center;
       gap: 10px;
     }
-    #genre-filter-form select {
+    #genre-filter-form select, #genre-filter-form input {
       background: #1a1f25;
       border: 1px solid #222;
       color: #eee;
@@ -441,11 +441,11 @@
       border-radius: 4px;
       width: 100%;
     }
-    #genre-filter-form select:disabled {
+    #genre-filter-form select:disabled, #genre-filter-form input:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
-    #genre-filter:focus {
+    #genre-filter:focus, #year-filter:focus {
       outline: 2px solid #2196f3;
       outline-offset: 2px;
     }
@@ -489,6 +489,18 @@
     #back-to-top.visible {
       opacity: 0.9;
       visibility: visible;
+    }
+    .tm-search-form select {
+      background: #1a1f25;
+      border: 1px solid #222;
+      color: #eee;
+      padding: 0.5rem;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+    .tm-search-form select:focus {
+      outline: 2px solid #2196f3;
+      outline-offset: 2px;
     }
   </style>
   <script type="text/javascript" data-cfasync="false">
@@ -598,7 +610,13 @@
 
   <div class="tm-hero d-flex justify-content-center align-items-center" data-parallax="scroll" data-image-src="">
     <form class="d-flex tm-search-form" id="movie-search-form" autocomplete="off" style="width: 100%; max-width: 600px; margin: 2em auto;">
-      <input class="form-control tm-search-input" type="search" id="movie-search-input" placeholder="Search for movies or TV shows..." aria-label="Search">
+      <select id="search-type" aria-label="Search type">
+        <option value="title">Title</option>
+        <option value="actor">Actor</option>
+        <option value="actress">Actress</option>
+        <option value="director">Director</option>
+      </select>
+      <input class="form-control tm-search-input" type="search" id="movie-search-input" placeholder="Search for movies, TV shows, or people..." aria-label="Search">
       <button class="btn btn-outline-success tm-search-btn" type="submit">
         <i class="fas fa-search"></i>
       </button>
@@ -616,9 +634,10 @@
     </div>
     <div class="row mb-4">
       <form class="genre-filter-form" id="genre-filter-form">
-        <select id="genre-filter" aria-label="Filter movies by genre" role="listbox" disabled>
+        <select id="genre-filter" aria-label="Filter by genre" role="listbox" disabled>
           <option value="" id="genre-all">Loading genres...</option>
         </select>
+        <input type="number" id="year-filter" placeholder="Year" min="1900" max="2025" aria-label="Filter by year">
         <button type="button" id="clear-genre-btn" class="btn btn-outline-primary" style="padding: 0.5rem 1rem;">Clear</button>
       </form>
     </div>
@@ -673,6 +692,9 @@
     let currentMode = "popular";
     let currentQuery = "";
     let currentGenre = "";
+    let currentYear = "";
+    let currentPersonId = null;
+    let currentSearchType = "title";
     let favorites = JSON.parse(localStorage.getItem('favorites') || "[]");
     let netflixType = "movie";
     let tvModalData = { tvId: null, season: null, episode: null, seasons: [] };
@@ -695,6 +717,7 @@
     const movieList = document.getElementById('movie-list');
     const infiniteLoader = document.getElementById('infinite-loader');
     const genreFilter = document.getElementById('genre-filter');
+    const yearFilter = document.getElementById('year-filter');
 
     // Throttle function
     function throttle(func, limit) {
@@ -752,7 +775,7 @@
       setTimeout(() => errorMsg.remove(), 5000);
     }
 
-    // Fetch genres (UNCHANGED)
+    // Fetch genres
     async function fetchGenres() {
       try {
         const [movieRes, tvRes] = await Promise.all([
@@ -765,7 +788,7 @@
         movieGenres = movieData.genres || [];
         tvGenres = tvData.genres || [];
         populateGenreFilter();
-        genreFilter.disabled = false; // Enable after loading
+        genreFilter.disabled = false;
       } catch (e) {
         console.error('Error fetching genres:', e);
         genreFilter.innerHTML = '<option value="" id="genre-all">Failed to load genres</option>';
@@ -796,6 +819,7 @@
         genreFilter.appendChild(option);
       });
       genreFilter.value = currentGenre || "";
+      yearFilter.value = currentYear || "";
       genreFilter.setAttribute('aria-activedescendant', genreFilter.options[genreFilter.selectedIndex].id || '');
     }
 
@@ -834,11 +858,16 @@
           .then(data => ({ ...data, media_type: item.media_type }))
       )).then(arr => {
         categoryItems = arr.filter(m => m && m.id).slice(0, maxItems);
-        if (currentGenre) {
-          const filteredItems = categoryItems.filter(item =>
-            item.genre_ids?.includes(parseInt(currentGenre)) ||
-            item.genres?.some(g => g.id === parseInt(currentGenre))
-          );
+        if (currentGenre || currentYear) {
+          const filteredItems = categoryItems.filter(item => {
+            const matchesGenre = !currentGenre || (
+              item.genre_ids?.includes(parseInt(currentGenre)) ||
+              item.genres?.some(g => g.id === parseInt(currentGenre))
+            );
+            const releaseYear = (item.release_date || item.first_air_date || '').slice(0, 4);
+            const matchesYear = !currentYear || releaseYear === currentYear;
+            return matchesGenre && matchesYear;
+          });
           renderMovies(filteredItems, true);
         } else {
           renderMovies(categoryItems, true);
@@ -895,42 +924,124 @@
       });
     }
 
-    // Fetch & Render (UNCHANGED)
+    // Fetch & Render
     async function fetchMoviesInf(page = 1) {
       if (loadedPages.has(page) || page > maxPages) return [];
       let url = "";
+      let items = [];
       if (currentMode === "favorites") {
         renderFavorites();
         return [];
       }
-      if (currentMode === "search" && currentQuery.trim()) {
-        url = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`;
-      } else if (currentMode === "anime") {
-        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_genres=${currentGenre || 16}&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
-      } else if (currentMode === "tagalog") {
-        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_original_language=tl${currentGenre ? `&with_genres=${currentGenre}` : ''}&sort_by=popularity.desc&page=${page}`;
-      } else if (currentMode === "tv") {
-        url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}${currentGenre ? `&with_genres=${currentGenre}` : ''}&sort_by=popularity.desc&page=${page}`;
-      } else if (currentMode === "netflix") {
-        if (netflixType === "movie") {
-          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_watch_providers=8&watch_region=US${currentGenre ? `&with_genres=${currentGenre}` : ''}&sort_by=popularity.desc&page=${page}`;
-        } else {
-          url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_watch_providers=8&watch_region=US${currentGenre ? `&with_genres=${currentGenre}` : ''}&sort_by=popularity.desc&page=${page}`;
-        }
-      } else {
-        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}${currentGenre ? `&with_genres=${currentGenre}` : ''}&sort_by=popularity.desc&page=${page}`;
-      }
       try {
         genreFilter.disabled = true;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        if (!data.results || data.results.length === 0) {
-          return [];
+        yearFilter.disabled = true;
+        if (currentMode === "search" && currentQuery.trim()) {
+          if (currentSearchType === "title") {
+            url = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            items = data.results || [];
+            if (currentYear) {
+              items = items.filter(item => {
+                const releaseYear = (item.release_date || item.first_air_date || '').slice(0, 4);
+                return releaseYear === currentYear;
+              });
+            }
+            if (currentGenre) {
+              items = items.filter(item =>
+                item.genre_ids?.includes(parseInt(currentGenre)) ||
+                item.genres?.some(g => g.id === parseInt(currentGenre))
+              );
+            }
+          } else {
+            // Person search (actor, actress, director)
+            const personUrl = `https://api.themoviedb.org/3/search/person?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=1`;
+            const personRes = await fetch(personUrl);
+            if (!personRes.ok) throw new Error(`HTTP error! status: ${personRes.status}`);
+            const personData = await personRes.json();
+            const person = personData.results && personData.results[0];
+            if (!person) {
+              movieList.innerHTML = `<div class="empty-state">No person found for "${currentQuery}".</div>`;
+              return [];
+            }
+            currentPersonId = person.id;
+            const mediaType = currentMode === "tv" ? "tv" : "movie";
+            const personMediaUrl = `https://api.themoviedb.org/3/person/${person.id}/${mediaType}_credits?api_key=${apiKey}`;
+            const mediaRes = await fetch(personMediaUrl);
+            if (!mediaRes.ok) throw new Error(`HTTP error! status: ${mediaRes.status}`);
+            const mediaData = await mediaRes.json();
+            items = (mediaType === "movie" ? mediaData.cast : mediaData.cast.concat(mediaData.crew)).filter(item => {
+              if (currentSearchType === "director" && mediaType === "movie") {
+                return mediaData.crew.some(crew => crew.id === item.id && crew.job === "Director");
+              }
+              if (currentSearchType === "actor" || currentSearchType === "actress") {
+                return mediaData.cast.some(cast => cast.id === item.id);
+              }
+              return true;
+            });
+            if (currentYear) {
+              items = items.filter(item => {
+                const releaseYear = (item.release_date || item.first_air_date || '').slice(0, 4);
+                return releaseYear === currentYear;
+              });
+            }
+            if (currentGenre) {
+              items = items.filter(item =>
+                item.genre_ids?.includes(parseInt(currentGenre)) ||
+                item.genres?.some(g => g.id === parseInt(currentGenre))
+              );
+            }
+            // Paginate results
+            const itemsPerPage = 20;
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            totalPages = Math.ceil(items.length / itemsPerPage);
+            items = items.slice(start, end);
+          }
+        } else if (currentMode === "anime") {
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_genres=${currentGenre || 16}&with_original_language=ja${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const data = await response.json();
+          items = data.results || [];
+          totalPages = Math.min(data.total_pages || 1, maxPages);
+        } else if (currentMode === "tagalog") {
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_original_language=tl${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const data = await response.json();
+          items = data.results || [];
+          totalPages = Math.min(data.total_pages || 1, maxPages);
+        } else if (currentMode === "tv") {
+          url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&first_air_date_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const data = await response.json();
+          items = data.results || [];
+          totalPages = Math.min(data.total_pages || 1, maxPages);
+        } else if (currentMode === "netflix") {
+          if (netflixType === "movie") {
+            url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_watch_providers=8&watch_region=US${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+          } else {
+            url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_watch_providers=8&watch_region=US${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&first_air_date_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+          }
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const data = await response.json();
+          items = data.results || [];
+          totalPages = Math.min(data.total_pages || 1, maxPages);
+        } else {
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const data = await response.json();
+          items = data.results || [];
+          totalPages = Math.min(data.total_pages || 1, maxPages);
         }
-        totalPages = Math.min(data.total_pages || 1, maxPages);
         loadedPages.add(page);
-        return data.results;
+        return items;
       } catch (e) {
         console.error('Fetch error:', e);
         movieList.innerHTML = `<div class="error-state">Failed to load movies/TV shows. Please check your connection.</div>`;
@@ -938,12 +1049,13 @@
         return [];
       } finally {
         genreFilter.disabled = false;
+        yearFilter.disabled = false;
       }
     }
     function renderMovies(items, clear = false) {
       if (clear) movieList.innerHTML = '';
       if (!items || items.length === 0) {
-        if (clear) movieList.innerHTML = `<div class="empty-state">No items found for this ${currentGenre ? 'genre' : 'category'}.</div>`;
+        if (clear) movieList.innerHTML = `<div class="empty-state">No items found for this ${currentGenre || currentYear || currentPersonId ? 'selection' : 'category'}.</div>`;
         return;
       }
       const fragment = document.createDocumentFragment();
@@ -993,7 +1105,7 @@
       } else {
         reachedEnd = true;
         if (clear && !categoryItems.length) {
-          movieList.innerHTML = `<div class="empty-state">No items found for this ${currentGenre ? 'genre' : 'category'}.</div>`;
+          movieList.innerHTML = `<div class="empty-state">No items found for this ${currentGenre || currentYear || currentPersonId ? 'selection' : 'category'}.</div>`;
         }
       }
       isLoading = false;
@@ -1316,9 +1428,13 @@
       currentMode = newMode;
       currentQuery = "";
       currentGenre = "";
+      currentYear = "";
+      currentPersonId = null;
+      currentSearchType = "title";
       document.getElementById('nav-favorites').classList.remove('favorited');
       let sectionTitle = document.getElementById('section-title');
       const genreFilterForm = document.getElementById('genre-filter-form');
+      const searchType = document.getElementById('search-type');
 
       if (newMode === "anime") {
         sectionTitle.textContent = "Trending Anime Movies";
@@ -1342,6 +1458,8 @@
       }
       setActiveNav(newMode);
       genreFilter.value = "";
+      yearFilter.value = "";
+      searchType.value = "title";
       populateGenreFilter();
       if (currentMode === "favorites") {
         renderFavorites();
@@ -1389,153 +1507,112 @@
           backToTopBtn.classList.remove('visible');
         }
       });
+
       backToTopBtn.addEventListener('click', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
 
-      document.getElementById('nav-home').onclick = function(e) {
+      // Search form handling
+      const searchForm = document.getElementById('movie-search-form');
+      const searchInput = document.getElementById('movie-search-input');
+      const searchType = document.getElementById('search-type');
+
+      searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        switchMode('popular');
-        document.getElementById('movie-search-input').value = '';
-        document.getElementById('genre-filter').value = '';
-      };
-      document.getElementById('nav-movies').onclick = function(e) { e.preventDefault(); switchMode('popular'); };
-      document.getElementById('nav-tvshows').onclick = function(e) { e.preventDefault(); switchMode('tv'); };
-      document.getElementById('nav-anime').onclick = function(e) { e.preventDefault(); switchMode('anime'); };
-      document.getElementById('nav-tagalog').onclick = function(e) { e.preventDefault(); switchMode('tagalog'); };
-      document.getElementById('nav-favorites').onclick = function(e) { e.preventDefault(); switchMode('favorites'); };
-      document.getElementById('nav-netflix').onclick = function(e) {
-        e.preventDefault();
-        let nav = document.getElementById('nav-netflix').parentNode;
-        if (!document.getElementById("netflix-switcher")) {
-          let switcher = document.createElement("div");
-          switcher.id = "netflix-switcher";
-          switcher.style = "margin-top: 6px; margin-bottom: 2px;";
-          switcher.innerHTML = `<button id="netflix-movie-btn" class="btn btn-danger btn-sm" style="margin-right: 7px;">Movies</button>
-            <button id="netflix-tv-btn" class="btn btn-danger btn-sm">TV Shows</button>`;
-          nav.appendChild(switcher);
-          document.getElementById("netflix-movie-btn").onclick = function(ev) {
-            ev.preventDefault();
-            netflixType = "movie";
-            switchMode("netflix");
-            nav.removeChild(switcher);
-          };
-          document.getElementById("netflix-tv-btn").onclick = function(ev) {
-            ev.preventDefault();
-            netflixType = "tv";
-            switchMode("netflix");
-            nav.removeChild(switcher);
-          };
-        }
-      };
-      const form = document.getElementById('movie-search-form');
-      const input = document.getElementById('movie-search-input');
-      const sectionTitle = document.getElementById('section-title');
-      form.onsubmit = function(e) {
-        e.preventDefault();
-        const q = input.value.trim();
-        if (q.length > 0) {
-          currentMode = "search";
-          currentQuery = q;
-          currentGenre = "";
-          sectionTitle.textContent = `Search Results for "${q}"`;
-          document.getElementById('genre-filter-form').style.display = 'none';
-          setActiveNav("");
+        currentQuery = searchInput.value.trim();
+        currentSearchType = searchType.value;
+        if (currentQuery) {
+          currentMode = 'search';
+          document.getElementById('section-title').textContent = `Search Results for "${currentQuery}"`;
+          setActiveNav('search');
           resetInfiniteScroll();
-        } else {
-          switchMode('popular');
-        }
-      };
-      input.addEventListener('input', function() {
-        if (currentMode === "search" && this.value.trim().length === 0) {
-          switchMode('popular');
-          document.getElementById('genre-filter-form').style.display = 'flex';
         }
       });
-      genreFilter.onchange = function() {
+
+      // Genre and year filter handling
+      const genreFilterForm = document.getElementById('genre-filter-form');
+      genreFilterForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+      });
+
+      genreFilter.addEventListener('change', () => {
         currentGenre = genreFilter.value;
-        if (currentMode === "favorites") {
-          const filteredItems = currentGenre
-            ? categoryItems.filter(item =>
-                item.genre_ids?.includes(parseInt(currentGenre)) ||
-                item.genres?.some(g => g.id === parseInt(currentGenre))
-              )
-            : categoryItems;
-          renderMovies(filteredItems, true);
-          genreFilter.focus();
-        } else {
-          resetInfiniteScroll();
-          genreFilter.focus();
-        }
-        genreFilter.setAttribute('aria-activedescendant', genreFilter.options[genreFilter.selectedIndex].id || '');
-      };
-      document.getElementById('clear-genre-btn').onclick = function() {
-        genreFilter.value = "";
-        currentGenre = "";
-        if (currentMode === "favorites") {
+        currentYear = yearFilter.value.trim();
+        if (currentMode === 'favorites') {
           renderFavorites();
         } else {
           resetInfiniteScroll();
         }
-        genreFilter.focus();
+      });
+
+      yearFilter.addEventListener('input', () => {
+        currentYear = yearFilter.value.trim();
+        if (currentMode === 'favorites') {
+          renderFavorites();
+        } else {
+          resetInfiniteScroll();
+        }
+      });
+
+      document.getElementById('clear-genre-btn').addEventListener('click', () => {
+        currentGenre = '';
+        currentYear = '';
+        genreFilter.value = '';
+        yearFilter.value = '';
+        if (currentMode === 'favorites') {
+          renderFavorites();
+        } else {
+          resetInfiniteScroll();
+        }
+      });
+
+      // Navigation clicks
+      document.getElementById('nav-home').addEventListener('click', () => switchMode('popular'));
+      document.getElementById('nav-movies').addEventListener('click', () => switchMode('popular'));
+      document.getElementById('nav-tvshows').addEventListener('click', () => switchMode('tv'));
+      document.getElementById('nav-anime').addEventListener('click', () => switchMode('anime'));
+      document.getElementById('nav-tagalog').addEventListener('click', () => switchMode('tagalog'));
+      document.getElementById('nav-netflix').addEventListener('click', () => switchMode('netflix'));
+      document.getElementById('nav-favorites').addEventListener('click', () => switchMode('favorites'));
+
+      // Netflix toggle between movie and TV
+      document.getElementById('nav-netflix').addEventListener('click', () => {
+        netflixType = netflixType === 'movie' ? 'tv' : 'movie';
+        switchMode('netflix');
+      });
+
+      // Share functionality
+      window.shareMovie = function() {
+        if (navigator.share && lastModalMovie) {
+          navigator.share({
+            title: lastModalMovie.title,
+            text: `Check out ${lastModalMovie.title} on MovieDck!`,
+            url: window.location.href
+          }).catch(err => console.error('Share failed:', err));
+        } else {
+          alert('Sharing is not supported on this device.');
+        }
       };
+
+      window.shareTvShow = function() {
+        if (navigator.share && tvModalData.tvId) {
+          fetch(`https://api.themoviedb.org/3/tv/${tvModalData.tvId}?api_key=${apiKey}`)
+            .then(r => r.json())
+            .then(data => {
+              navigator.share({
+                title: data.name,
+                text: `Check out ${data.name} on MovieDck!`,
+                url: window.location.href
+              }).catch(err => console.error('Share failed:', err));
+            });
+        } else {
+          alert('Sharing is not supported on this device.');
+        }
+      };
+
+      // Initial load
+      switchMode('popular');
       renderRecentlyViewed();
-      resetInfiniteScroll();
-    });
-
-    window.addEventListener("load", function() {
-      document.body.classList.add('loaded');
-      resetInfiniteScroll();
-      renderRecentlyViewed();
-    });
-
-    function shareMovie() {
-      if (!lastModalMovie) return;
-      const url = `${location.origin}${location.pathname}?mid=${lastModalMovie.id}`;
-      if (navigator.share) {
-        navigator.share({
-          title: lastModalMovie.title,
-          text: "Check out this movie on MovieDck!",
-          url
-        });
-      } else {
-        navigator.clipboard.writeText(url);
-        const btn = document.getElementById('share-movie-btn');
-        btn.textContent = "Copied!";
-        setTimeout(() => { btn.textContent = "Share"; }, 1200);
-      }
-    }
-    function shareTvShow() {
-      if (!document.getElementById('tv-modal-title').textContent) return;
-      const url = location.href.split('?')[0];
-      if (navigator.share) {
-        navigator.share({
-          title: document.getElementById('tv-modal-title').textContent,
-          text: "Check out this TV show on MovieDck!",
-          url
-        });
-      } else {
-        navigator.clipboard.writeText(url);
-        const btn = document.getElementById('share-tv-btn');
-        btn.textContent = "Copied!";
-        setTimeout(() => { btn.textContent = "Share"; }, 1200);
-      }
-    }
-    (function() {
-      const params = new URLSearchParams(location.search);
-      if (params.has("mid")) {
-        fetch(`https://api.themoviedb.org/3/movie/${params.get("mid")}?api_key=${apiKey}`).then(r => r.json()).then(showDetails);
-      }
-    })();
-
-    document.addEventListener('keydown', function(e) {
-      if (e.key === "/") {
-        e.preventDefault();
-        document.getElementById('movie-search-input').focus();
-      }
-      if (e.key === "Escape" && document.getElementById('modal').style.display === 'flex') {
-        closeModal();
-      }
     });
   </script>
 </body>
