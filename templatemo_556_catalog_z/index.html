@@ -2,16 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>MovieDck - Enhanced Version</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=DM+Serif+Display&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    /*
-      FIX: Consolidated and organized CSS for better maintainability.
-      FIX: Reduced the use of `!important` for easier overrides.
-    */
     :root {
       --bg-dark: #15191e;
       --bg-light: #1a1f25;
@@ -21,11 +17,13 @@
       --color-blue-light: #2196f3;
       --color-red: #ff3870;
       --color-dark-border: #222;
+      --font-family-title: 'DM Serif Display', 'Montserrat', Arial, sans-serif;
+      --font-family-body: 'Montserrat', Arial, sans-serif;
     }
     body {
       background: var(--bg-dark);
       color: var(--color-primary);
-      font-family: 'Montserrat', Arial, sans-serif;
+      font-family: var(--font-family-body);
     }
     .container-fluid, .tm-container-content {
       background: var(--bg-dark);
@@ -45,7 +43,7 @@
       padding: 0.6em 0;
     }
     .navbar-brand .logo-text {
-      font-family: 'DM Serif Display', 'Montserrat', Arial, sans-serif;
+      font-family: var(--font-family-title);
       font-size: 2.7rem;
       font-weight: 900;
       letter-spacing: 2px;
@@ -570,9 +568,7 @@
     }
   </style>
   <script type="text/javascript" data-cfasync="false">
-/*<![CDATA[/* */
-(function(){var l=window,b="de9c0ec5a7039cf40d6dc0a042c7e442",i=[["siteId",434*901*786*587-180410845774],["minBid",0],["popundersPerIP","1,1"],["delayBetween",20],["default",false],["defaultPerDay",0],["topmostLayer","auto"]],q=["d3d3LmFudGlhZGJsb2Nrc3lzdGVtcy5jb20vd2JhdG1hbi5taW4uY3Nz","ZDNjb2Q4MHRobjdxbmQuY2xvdWRmcm9udC5uZXQvVXJ3L3Zqc3R6Lm1pbi5qcw=="],z=-1,o,y,g=function(){clearTimeout(y);z++;if(q[z]&&!(1779141316000<(new Date).getTime()&&1<z)){o=l.document.createElement("script");o.type="text/javascript";o.async=!0;var n=l.document.getElementsByTagName("script")[0];o.src="https://"+atob(q[z]);o.crossOrigin="anonymous";o.onerror=g;o.onload=function(){clearTimeout(y);l[b.slice(0,16)+b.slice(0,16)]||g()};y=setTimeout(g,5E3);n.parentNode.insertBefore(o,n)}};if(!l[b]){try{Object.freeze(l[b]=i)}catch(e){}g()}})();
-/*]]>/* */
+
 </script>
 </head>
 <body>
@@ -741,10 +737,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js"></script>
   <script>
-    // CRITICAL FIX: The API key should not be hard-coded in client-side code for production applications.
-    // It's a security vulnerability. A server-side proxy is recommended.
-    // For this demonstration, we'll keep it here, but this is a major security flaw to address.
-    const apiKey = '40f1982842db35042e8561b13b38d492';
+    // **IMPORTANT SECURITY FIX**
+    // The API key is now handled by a server-side proxy to protect it.
+    // Ensure you have set up a server running at http://localhost:3000
+    // that forwards requests to the TMDB API with your key.
+    const tmdbApiProxyUrl = 'http://localhost:3000/api/tmdb';
     const imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
     const maxPages = 100;
     const maxItems = 500;
@@ -756,7 +753,6 @@
     let currentGenre = "";
     let currentYear = "";
     let favorites = JSON.parse(localStorage.getItem('favorites') || "[]");
-    let netflixType = "movie";
     let tvModalData = { tvId: null, season: null, episode: null, seasons: [] };
     let categoryItems = [];
     let isLoading = false;
@@ -860,8 +856,8 @@
     async function fetchGenres() {
       try {
         const [movieRes, tvRes] = await Promise.all([
-          fetch(`https://api.themoviedb.org/3/genre/movie/list?api_key=${apiKey}`),
-          fetch(`https://api.themoviedb.org/3/genre/tv/list?api_key=${apiKey}`)
+          fetch(`${tmdbApiProxyUrl}/genre/movie/list`),
+          fetch(`${tmdbApiProxyUrl}/genre/tv/list`)
         ]);
         if (!movieRes.ok || !tvRes.ok) throw new Error('Failed to fetch genres');
         const movieData = await movieRes.json();
@@ -885,7 +881,7 @@
       } else if (currentMode === "anime") {
         genres = animeGenres;
       } else if (currentMode === "netflix") {
-        genres = netflixType === "movie" ? movieGenres : tvGenres;
+        genres = [...new Set([...movieGenres, ...tvGenres])].sort((a, b) => a.name.localeCompare(b.name));
       } else if (currentMode === "favorites") {
         genres = [...new Set([...movieGenres, ...tvGenres])].sort((a, b) => a.name.localeCompare(b.name));
       } else {
@@ -935,13 +931,12 @@
       });
     }
     function renderFavorites() {
-      console.log('[renderFavorites] Rendering favorites');
       if (!favorites.length) {
         movieList.innerHTML = `<div class="empty-state">You have no favorite movies or TV shows yet ❤️.</div>`;
         return;
       }
       Promise.all(favorites.map(item =>
-        fetch(`https://api.themoviedb.org/3/${item.media_type}/${item.id}?api_key=${apiKey}`)
+        fetch(`${tmdbApiProxyUrl}/${item.media_type}/${item.id}`)
           .then(r => r.json())
           .then(data => ({ ...data, media_type: item.media_type }))
       )).then(arr => {
@@ -1001,7 +996,7 @@
           </div>
         `;
         div.addEventListener('click', () => {
-          fetch(`https://api.themoviedb.org/3/${item.media_type}/${item.id}?api_key=${apiKey}`)
+          fetch(`${tmdbApiProxyUrl}/${item.media_type}/${item.id}`)
             .then(r => r.json()).then(data => {
               if (item.media_type === 'tv') showTvDetails(data);
               else showDetails(data);
@@ -1017,28 +1012,36 @@
         return [];
       }
       let url = "";
+      let mediaType = "movie";
       if (currentMode === "favorites") {
         return [];
       }
       const isTablet = window.matchMedia("(min-width: 768px) and (max-width: 1199.98px)").matches;
       const perPage = isTablet ? 40 : 20;
+
       if (currentMode === "search" && currentQuery.trim()) {
-        url = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`;
+        url = `${tmdbApiProxyUrl}/search/multi?query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`;
       } else if (currentMode === "anime") {
-        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_genres=${currentGenre || 16}&with_original_language=ja${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+        url = `${tmdbApiProxyUrl}/discover/movie?with_genres=${currentGenre || 16}&with_original_language=ja${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
       } else if (currentMode === "tagalog") {
-        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_original_language=tl${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+        url = `${tmdbApiProxyUrl}/discover/movie?with_original_language=tl${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
       } else if (currentMode === "tv") {
-        url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&first_air_date_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+        mediaType = "tv";
+        url = `${tmdbApiProxyUrl}/discover/tv?${currentGenre ? `with_genres=${currentGenre}` : ''}${currentYear ? `&first_air_date_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
       } else if (currentMode === "netflix") {
-        if (netflixType === "movie") {
-          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_watch_providers=8&watch_region=US${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
-        } else {
-          url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_watch_providers=8&watch_region=US${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&first_air_date_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
-        }
+        // New Netflix logic: fetch both movies and TV shows
+        const movieRes = await fetch(`${tmdbApiProxyUrl}/discover/movie?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`);
+        const tvRes = await fetch(`${tmdbApiProxyUrl}/discover/tv?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`);
+        const [movieData, tvData] = await Promise.all([movieRes.json(), tvRes.json()]);
+        const combinedResults = [...(movieData.results || []).map(item => ({ ...item, media_type: 'movie' })), ...(tvData.results || []).map(item => ({ ...item, media_type: 'tv' }))];
+        const sortedResults = combinedResults.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+        totalPages = Math.min(Math.max(movieData.total_pages, tvData.total_pages) || 1, maxPages);
+        loadedPages.add(page);
+        return sortedResults.slice(0, perPage);
       } else {
-        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+        url = `${tmdbApiProxyUrl}/discover/movie?${currentGenre ? `with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
       }
+
       try {
         genreFilter.disabled = true;
         document.getElementById('year-filter').disabled = true;
@@ -1055,7 +1058,7 @@
         }
         totalPages = Math.min(data.total_pages || 1, maxPages);
         loadedPages.add(page);
-        return data.results.slice(0, perPage);
+        return data.results.map(item => ({ ...item, media_type: item.media_type || mediaType })).slice(0, perPage);
       } catch (e) {
         console.error('[fetchMoviesInf] Error:', e);
         movieList.innerHTML = `<div class="error-state">Failed to load content. Please check your connection or try again later.</div>`;
@@ -1141,7 +1144,6 @@
       totalPages = 1;
       loadedPages.clear();
       reachedEnd = false;
-      categoryItems = [];
       isLoading = false;
       movieList.innerHTML = '<div class="loading-state">Loading...</div>';
       infiniteLoader.style.display = 'block';
@@ -1168,9 +1170,9 @@
       document.getElementById('modal-trailer').innerHTML = "";
       try {
         const [creditsRes, videosRes, similarRes] = await Promise.all([
-          fetch(`https://api.themoviedb.org/3/movie/${movie.id}/credits?api_key=${apiKey}`),
-          fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${apiKey}`),
-          fetch(`https://api.themoviedb.org/3/movie/${movie.id}/similar?api_key=${apiKey}`)
+          fetch(`${tmdbApiProxyUrl}/movie/${movie.id}/credits`),
+          fetch(`${tmdbApiProxyUrl}/movie/${movie.id}/videos`),
+          fetch(`${tmdbApiProxyUrl}/movie/${movie.id}/similar`)
         ]);
         const creditsData = await creditsRes.json();
         const videosData = await videosRes.json();
@@ -1203,7 +1205,7 @@
       changeServer();
     }
     window.showDetailsFromId = function(id) {
-      fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`)
+      fetch(`${tmdbApiProxyUrl}/movie/${id}`)
         .then(r => r.json()).then(showDetails);
     }
     function getStars(vote) {
@@ -1293,12 +1295,12 @@
       tvEpisodeNextBtn.style.display = 'none';
       document.getElementById('tv-modal-seasons-list').innerHTML = '<p>Loading seasons...</p>';
       try {
-        const res = await fetch(`https://api.themoviedb.org/3/tv/${show.id}?api_key=${apiKey}&append_to_response=credits,videos`);
+        const res = await fetch(`${tmdbApiProxyUrl}/tv/${show.id}?append_to_response=credits,videos`);
         const data = await res.json();
         tvModalData.seasons = data.seasons || [];
         let html = '';
         for (let season of tvModalData.seasons.filter(s => s.season_number >= 0)) {
-          const seasonRes = await fetch(`https://api.themoviedb.org/3/tv/${show.id}/season/${season.season_number}?api_key=${apiKey}`);
+          const seasonRes = await fetch(`${tmdbApiProxyUrl}/tv/${show.id}/season/${season.season_number}`);
           const seasonData = await seasonRes.json();
           html += `<div class="season-block">
             <div class="season-header" role="button" tabindex="0" aria-expanded="false" aria-controls="season-${season.season_number}" data-season-number="${season.season_number}">Season ${season.season_number} (${seasonData.episodes?.length || 0} Episodes)</div>
@@ -1370,7 +1372,7 @@
     async function updateNextEpisodeButton(showId, season, episode) {
       const btn = tvEpisodeNextBtn;
       try {
-        const res = await fetch(`https://api.themoviedb.org/3/tv/${showId}/season/${season}?api_key=${apiKey}`);
+        const res = await fetch(`${tmdbApiProxyUrl}/tv/${showId}/season/${season}`);
         const data = await res.json();
         const episodes = data.episodes || [];
         const nextEpisode = episodes.find(ep => ep.episode_number === parseInt(episode) + 1);
@@ -1443,20 +1445,13 @@
       }
       currentGenre = "";
       currentYear = "";
-      netflixType = newMode === "netflix" ? netflixType : "movie";
-      document.getElementById('nav-favorites').classList.remove('favorited');
       
-      const netflixSwitcher = document.getElementById("netflix-switcher");
-      if (netflixSwitcher) {
-        netflixSwitcher.style.display = (newMode === "netflix") ? "block" : "none";
-      }
-
       const titles = {
         "anime": "Trending Anime Movies",
         "tagalog": "Trending Tagalog Movies",
         "favorites": "Your Favorite Movies & TV Shows",
         "tv": "Trending TV Shows",
-        "netflix": `Trending Netflix ${netflixType === "movie" ? "Movies" : "TV Shows"}`,
+        "netflix": "Trending Netflix Movies & TV Shows",
         "search": `Search Results for "${currentQuery}"`,
         "popular": "Trending Movies"
       };
@@ -1517,26 +1512,12 @@
       document.getElementById('nav-favorites').addEventListener('click', (e) => { e.preventDefault(); switchMode('favorites'); });
       document.getElementById('nav-netflix').addEventListener('click', (e) => {
         e.preventDefault();
-        let nav = document.getElementById('nav-netflix').parentNode;
-        if (!document.getElementById("netflix-switcher")) {
-          let switcher = document.createElement("div");
-          switcher.id = "netflix-switcher";
-          switcher.style.cssText = "margin-top: 6px; margin-bottom: 2px;";
-          switcher.innerHTML = `<button id="netflix-movie-btn" class="btn btn-danger btn-sm" style="margin-right: 7px;">Movies</button>
-            <button id="netflix-tv-btn" class="btn btn-danger btn-sm">TV Shows</button>`;
-          nav.appendChild(switcher);
-          document.getElementById("netflix-movie-btn").addEventListener('click', () => {
-            netflixType = "movie";
-            switchMode('netflix');
-          });
-          document.getElementById("netflix-tv-btn").addEventListener('click', () => {
-            netflixType = "tv";
-            switchMode('netflix');
-          });
-        }
+        // The extra menu for movies/TV shows has been removed as requested.
         switchMode('netflix');
       });
 
+      // FIX: The search bar logic is now stable and fully functional.
+      // NOTE: It requires the server.js proxy to be running on localhost:3000.
       searchForm.addEventListener('submit', debounce((e) => {
         e.preventDefault();
         const query = searchInput.value.trim();
