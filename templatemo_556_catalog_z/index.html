@@ -583,21 +583,6 @@
           <button class="share-btn" id="share-movie-btn">Share</button>
         </div>
       </div>
-      <div class="server-selector">
-        <label for="server">Change Server:</label>
-        <select id="server">
-          <option value="player.videasy.net" selected>Player.Videasy.net</option>
-          <option value="vidsrc.cc">Vidsrc.cc</option>
-          <option value="vidsrc.me">Vidsrc.me</option>
-        </select>
-      </div>
-      <div class="iframe-container">
-        <iframe id="modal-video" allowfullscreen></iframe>
-        <button class="iframe-play-overlay" id="movie-play-overlay">
-          <i class="fas fa-play"></i>
-        </button>
-      </div>
-      <div id="similar-movies" style="padding: 1rem 2rem;"></div>
     </div>
     <div class="modal-content" id="modal-content-tv" style="display: none;">
       <span class="close" id="close-modal-btn-tv" aria-label="Close modal">×</span>
@@ -616,16 +601,23 @@
           <div id="tv-modal-seasons-list"></div>
         </div>
       </div>
-      <div class="iframe-container">
-        <iframe id="tv-episode-player" allowfullscreen style="display: none;"></iframe>
-        <button class="iframe-play-overlay" id="tv-play-overlay">
-          <i class="fas fa-play"></i>
-        </button>
-      </div>
-      <div style="display: flex; justify-content: center;">
-        <button class="tv-episode-next-btn" id="tv-episode-next-btn" style="display: none; margin-bottom: 1em;">Next Episode »</button>
-      </div>
     </div>
+    <div class="server-selector" style="display: none;">
+      <label for="server">Change Server:</label>
+      <select id="server">
+        <option value="player.videasy.net" selected>Player.Videasy.net</option>
+        <option value="vidsrc.cc">Vidsrc.cc</option>
+        <option value="vidsrc.me">Vidsrc.me</option>
+      </select>
+    </div>
+    <div class="iframe-container" style="display: none;">
+      <iframe id="modal-video" allowfullscreen></iframe>
+      <iframe id="tv-episode-player" allowfullscreen></iframe>
+      <button class="iframe-play-overlay" id="player-play-overlay">
+        <i class="fas fa-play"></i>
+      </button>
+    </div>
+    <div id="similar-movies" style="padding: 1rem 2rem; display: none;"></div>
   </div>
 
   <nav class="navbar navbar-expand-lg">
@@ -1163,8 +1155,16 @@
       modalContentMovie.style.display = '';
       modalContentTv.style.display = 'none';
       modal.style.display = 'flex';
+      document.querySelector('.server-selector').style.display = 'block';
+      document.querySelector('.iframe-container').style.display = 'block';
+      document.getElementById('similar-movies').style.display = 'block';
+      movieIframe.style.display = 'block';
+      tvIframe.style.display = 'none';
+      tvEpisodeNextBtn.style.display = 'none';
+
       bmcHoverBtn.classList.remove('visible');
       lastModalMovie = movie;
+      tvModalData = { tvId: null, season: null, episode: null, seasons: [] }; // Reset TV data
       addRecentlyViewed(movie);
       document.getElementById('modal-title').textContent = movie.title;
       document.getElementById('modal-description').textContent = movie.overview || '';
@@ -1211,7 +1211,7 @@
         console.error("Error fetching modal details:", e);
       }
       serverSelect.value = "player.videasy.net";
-      changeServer();
+      updatePlayerSource();
     }
     window.showDetailsFromId = function(id) {
       fetch(`${tmdbApiBaseUrl}/movie/${id}?api_key=${tmdbApiKey}`)
@@ -1221,27 +1221,48 @@
       let stars = Math.round((vote || 0) / 2);
       return '★'.repeat(stars) + '☆'.repeat(5 - stars);
     }
-    function changeServer() {
-      if (!lastModalMovie) return;
-      const iframe = movieIframe;
-      const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
+    
+    function updatePlayerSource() {
+      const isMovieMode = modalContentMovie.style.display !== 'none';
+      const iframe = isMovieMode ? movieIframe : tvIframe;
+      const playOverlay = document.getElementById('player-play-overlay');
       const currentServer = serverSelect.value;
-      const movieId = lastModalMovie.id;
       let embedURL = '';
-      if (currentServer === 'player.videasy.net') {
-        embedURL = `https://player.videasy.net/movie/${movieId}`;
-      } else if (currentServer === 'vidsrc.cc') {
-        embedURL = `https://vidsrc.cc/v2/embed/movie/${movieId}`;
-      } else if (currentServer === 'vidsrc.me') {
-        embedURL = `https://vidsrc.net/embed/movie/?tmdb=${movieId}`;
+    
+      if (isMovieMode && lastModalMovie) {
+        const movieId = lastModalMovie.id;
+        if (currentServer === 'player.videasy.net') {
+          embedURL = `https://player.videasy.net/movie/${movieId}`;
+        } else if (currentServer === 'vidsrc.cc') {
+          embedURL = `https://vidsrc.cc/v2/embed/movie/${movieId}`;
+        } else if (currentServer === 'vidsrc.me') {
+          embedURL = `https://vidsrc.net/embed/movie/?tmdb=${movieId}`;
+        }
+        iframe.style.display = 'block';
+      } else if (!isMovieMode && tvModalData.tvId && tvModalData.season && tvModalData.episode) {
+        const { tvId, season, episode } = tvModalData;
+        if (currentServer === 'player.videasy.net') {
+          embedURL = `https://player.videasy.net/tv/${tvId}/${season}/${episode}`;
+        } else if (currentServer === 'vidsrc.cc') {
+          embedURL = `https://vidsrc.cc/v2/embed/tv/${tvId}/${season}/${episode}`;
+        } else if (currentServer === 'vidsrc.me') {
+          embedURL = `https://vidsrc.net/embed/tv/?tmdb=${tvId}&season=${season}&episode=${episode}`;
+        }
+        iframe.style.display = 'block';
+      } else {
+        iframe.src = '';
+        iframe.style.display = 'none';
+        playOverlay.style.display = 'block';
+        return;
       }
+    
       iframe.src = '';
       iframe.src = embedURL;
       iframe.onload = function() {
         try {
           iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
         } catch (e) {
-          console.error('[changeServer] Error sending play message:', e);
+          console.error('[updatePlayerSource] Error sending play message:', e);
           showErrorMessage(iframe, 'Failed to start playback. Try another server or check your connection.');
         }
         playOverlay.style.display = 'none';
@@ -1251,16 +1272,25 @@
         playOverlay.style.display = 'block';
       };
     }
-
-    function triggerIframePlay(iframeId) {
-      const iframe = document.getElementById(iframeId);
-      const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
-      try {
-        iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-        playOverlay.style.display = 'none';
-      } catch (e) {
-        console.error(`[triggerIframePlay] Error for ${iframeId}:`, e);
-        showErrorMessage(iframe, 'Failed to start playback. Try another server.');
+    
+    function triggerIframePlay() {
+      const isMovieMode = modalContentMovie.style.display !== 'none';
+      const iframe = isMovieMode ? movieIframe : tvIframe;
+      const playOverlay = document.getElementById('player-play-overlay');
+      if (iframe.src) {
+        try {
+          iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+          playOverlay.style.display = 'none';
+        } catch (e) {
+          console.error(`[triggerIframePlay] Error:`, e);
+          showErrorMessage(iframe, 'Failed to start playback. Try another server.');
+        }
+      } else {
+        if (isMovieMode && lastModalMovie) {
+          updatePlayerSource();
+        } else if (!isMovieMode && tvModalData.tvId && tvModalData.season && tvModalData.episode) {
+          playEpisode(tvModalData.tvId, tvModalData.season, tvModalData.episode);
+        }
       }
     }
 
@@ -1283,7 +1313,15 @@
       modalContentMovie.style.display = 'none';
       modalContentTv.style.display = '';
       modal.style.display = 'flex';
+      document.querySelector('.server-selector').style.display = 'block';
+      document.querySelector('.iframe-container').style.display = 'block';
+      document.getElementById('similar-movies').style.display = 'none';
+      movieIframe.style.display = 'none';
+      tvIframe.style.display = 'block';
+      tvEpisodeNextBtn.style.display = 'none';
+      
       bmcHoverBtn.classList.remove('visible');
+      lastModalMovie = null; // Reset movie data
       tvModalData.tvId = show.id;
       tvModalData.season = null;
       tvModalData.episode = null;
@@ -1300,6 +1338,7 @@
       document.getElementById('tv-modal-total-seasons').textContent = show.number_of_seasons || 'N/A';
       const favoriteBtn = document.getElementById('tv-favorite-btn');
       favoriteBtn.classList.toggle('favorited', isFavorite(show.id, 'tv'));
+      tvIframe.src = '';
       tvIframe.style.display = 'none';
       tvEpisodeNextBtn.style.display = 'none';
       document.getElementById('tv-modal-seasons-list').innerHTML = '<p>Loading seasons...</p>';
@@ -1327,7 +1366,7 @@
           header.addEventListener('click', () => toggleSeason(header.dataset.seasonNumber));
         });
         document.querySelectorAll('.tv-episode-play-btn').forEach(btn => {
-          btn.addEventListener('click', () => playEpisode(btn.dataset.show-id, btn.dataset.seasonNumber, btn.dataset.episodeNumber));
+          btn.addEventListener('click', () => playEpisode(btn.dataset.showId, btn.dataset.seasonNumber, btn.dataset.episodeNumber));
         });
       } catch (e) {
         console.error('[showTvDetails] Error:', e);
@@ -1347,33 +1386,7 @@
       tvModalData.season = parseInt(season);
       tvModalData.episode = parseInt(episode);
       bmcHoverBtn.classList.remove('visible');
-      const iframe = tvIframe;
-      const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
-      const server = serverSelect.value;
-      let embedURL = '';
-      if (server === 'player.videasy.net') {
-        embedURL = `https://player.videasy.net/tv/${showId}/${season}/${episode}`;
-      } else if (server === 'vidsrc.cc') {
-        embedURL = `https://vidsrc.cc/v2/embed/tv/${showId}/${season}/${episode}`;
-      } else if (server === 'vidsrc.me') {
-        embedURL = `https://vidsrc.net/embed/tv/?tmdb=${showId}&season=${season}&episode=${episode}`;
-      }
-      iframe.src = '';
-      iframe.src = embedURL;
-      iframe.style.display = 'block';
-      iframe.onload = () => {
-        try {
-          iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-          playOverlay.style.display = 'none';
-        } catch (e) {
-          console.error('[playEpisode] Error:', e);
-          showErrorMessage(iframe, 'Failed to start playback. Try another server.');
-        }
-      };
-      iframe.onerror = () => {
-        showErrorMessage(iframe, 'Failed to load episode. Try another server.');
-        playOverlay.style.display = 'block';
-      };
+      updatePlayerSource();
       tvEpisodeNextBtn.style.display = 'block';
       updateNextEpisodeButton(showId, season, episode);
     }
@@ -1417,11 +1430,9 @@
 
     function closeModal() {
       modal.style.display = 'none';
-      const iframes = [movieIframe, tvIframe];
-      iframes.forEach(iframe => {
-        iframe.src = '';
-        iframe.parentElement.querySelector('.iframe-play-overlay').style.display = 'block';
-      });
+      movieIframe.src = '';
+      tvIframe.src = '';
+      document.getElementById('player-play-overlay').style.display = 'block';
       lastModalMovie = null;
       tvModalData = { tvId: null, season: null, episode: null, seasons: [] };
       if (window.scrollY > 400) {
@@ -1597,9 +1608,8 @@
       modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
       });
-      serverSelect.addEventListener('change', changeServer);
-      document.getElementById('movie-play-overlay').addEventListener('click', () => triggerIframePlay('modal-video'));
-      document.getElementById('tv-play-overlay').addEventListener('click', () => triggerIframePlay('tv-episode-player'));
+      serverSelect.addEventListener('change', updatePlayerSource);
+      document.getElementById('player-play-overlay').addEventListener('click', triggerIframePlay);
       shareMovieBtn.addEventListener('click', shareMovie);
       shareTvBtn.addEventListener('click', shareTvShow);
       document.getElementById('tv-favorite-btn').addEventListener('click', () => toggleFavorite(tvModalData.tvId, 'tv'));
