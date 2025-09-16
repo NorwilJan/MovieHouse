@@ -562,9 +562,6 @@
       }
     }
   </style>
-  <script type="text/javascript" data-cfasync="false">
-
-</script>
 </head>
 <body>
   <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
@@ -586,8 +583,8 @@
       <div class="server-selector">
         <label for="server">Change Server:</label>
         <select id="server">
-          <option value="player.videasy.net" selected>Player.Videasy.net</option>
-          <option value="vidsrc.cc">Vidsrc.cc</option>
+          <option value="vidsrc.cc" selected>Vidsrc.cc</option>
+          <option value="player.videasy.net">Player.Videasy.net</option>
           <option value="vidsrc.me">Vidsrc.me</option>
         </select>
       </div>
@@ -615,6 +612,14 @@
           </button>
           <div id="tv-modal-seasons-list"></div>
         </div>
+      </div>
+      <div class="server-selector">
+        <label for="tv-server">Change Server:</label>
+        <select id="tv-server">
+          <option value="vidsrc.cc" selected>Vidsrc.cc</option>
+          <option value="player.videasy.net">Player.Videasy.net</option>
+          <option value="vidsrc.me">Vidsrc.me</option>
+        </select>
       </div>
       <div class="iframe-container">
         <iframe id="tv-episode-player" allowfullscreen style="display: none;"></iframe>
@@ -794,6 +799,7 @@
     const shareMovieBtn = document.getElementById('share-movie-btn');
     const shareTvBtn = document.getElementById('share-tv-btn');
     const serverSelect = document.getElementById('server');
+    const tvServerSelect = document.getElementById('tv-server');
 
     // ENHANCEMENT: Refactored function for better organization
     function throttle(func, limit) {
@@ -1210,7 +1216,7 @@
       } catch (e) {
         console.error("Error fetching modal details:", e);
       }
-      serverSelect.value = "player.videasy.net";
+      serverSelect.value = "vidsrc.cc";
       changeServer();
     }
     window.showDetailsFromId = function(id) {
@@ -1228,10 +1234,10 @@
       const currentServer = serverSelect.value;
       const movieId = lastModalMovie.id;
       let embedURL = '';
-      if (currentServer === 'player.videasy.net') {
-        embedURL = `https://player.videasy.net/movie/${movieId}`;
-      } else if (currentServer === 'vidsrc.cc') {
+      if (currentServer === 'vidsrc.cc') {
         embedURL = `https://vidsrc.cc/v2/embed/movie/${movieId}`;
+      } else if (currentServer === 'player.videasy.net') {
+        embedURL = `https://player.videasy.net/movie/${movieId}`;
       } else if (currentServer === 'vidsrc.me') {
         embedURL = `https://vidsrc.net/embed/movie/?tmdb=${movieId}`;
       }
@@ -1349,12 +1355,12 @@
       bmcHoverBtn.classList.remove('visible');
       const iframe = tvIframe;
       const playOverlay = iframe.parentElement.querySelector('.iframe-play-overlay');
-      const server = serverSelect.value;
+      const server = tvServerSelect.value;
       let embedURL = '';
-      if (server === 'player.videasy.net') {
-        embedURL = `https://player.videasy.net/tv/${showId}/${season}/${episode}`;
-      } else if (server === 'vidsrc.cc') {
+      if (server === 'vidsrc.cc') {
         embedURL = `https://vidsrc.cc/v2/embed/tv/${showId}/${season}/${episode}`;
+      } else if (server === 'player.videasy.net') {
+        embedURL = `https://player.videasy.net/tv/${showId}/${season}/${episode}`;
       } else if (server === 'vidsrc.me') {
         embedURL = `https://vidsrc.net/embed/tv/?tmdb=${showId}&season=${season}&episode=${episode}`;
       }
@@ -1598,6 +1604,7 @@
         if (e.target === modal) closeModal();
       });
       serverSelect.addEventListener('change', changeServer);
+      tvServerSelect.addEventListener('change', () => playEpisode(tvModalData.tvId, tvModalData.season, tvModalData.episode));
       document.getElementById('movie-play-overlay').addEventListener('click', () => triggerIframePlay('modal-video'));
       document.getElementById('tv-play-overlay').addEventListener('click', () => triggerIframePlay('tv-episode-player'));
       shareMovieBtn.addEventListener('click', shareMovie);
