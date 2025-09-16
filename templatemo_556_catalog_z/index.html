@@ -737,11 +737,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js"></script>
   <script>
-    // **IMPORTANT SECURITY FIX**
-    // The API key is now handled by a server-side proxy to protect it.
-    // Ensure you have set up a server running at http://localhost:3000
-    // that forwards requests to the TMDB API with your key.
-    const tmdbApiProxyUrl = 'http://localhost:3000/api/tmdb';
+    // ⚠️ WARNING: YOUR API KEY IS DIRECTLY INCLUDED IN THIS FILE. ⚠️
+    // This is not a secure practice for production. Anyone can view this key.
+    // The safer method is to use a server-side proxy.
+    const tmdbApiKey = '40f1982842db35042e8561b13b38d492';
+    const tmdbApiBaseUrl = 'https://api.themoviedb.org/3';
     const imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
     const maxPages = 100;
     const maxItems = 500;
@@ -856,8 +856,8 @@
     async function fetchGenres() {
       try {
         const [movieRes, tvRes] = await Promise.all([
-          fetch(`${tmdbApiProxyUrl}/genre/movie/list`),
-          fetch(`${tmdbApiProxyUrl}/genre/tv/list`)
+          fetch(`${tmdbApiBaseUrl}/genre/movie/list?api_key=${tmdbApiKey}`),
+          fetch(`${tmdbApiBaseUrl}/genre/tv/list?api_key=${tmdbApiKey}`)
         ]);
         if (!movieRes.ok || !tvRes.ok) throw new Error('Failed to fetch genres');
         const movieData = await movieRes.json();
@@ -936,7 +936,7 @@
         return;
       }
       Promise.all(favorites.map(item =>
-        fetch(`${tmdbApiProxyUrl}/${item.media_type}/${item.id}`)
+        fetch(`${tmdbApiBaseUrl}/${item.media_type}/${item.id}?api_key=${tmdbApiKey}`)
           .then(r => r.json())
           .then(data => ({ ...data, media_type: item.media_type }))
       )).then(arr => {
@@ -996,7 +996,7 @@
           </div>
         `;
         div.addEventListener('click', () => {
-          fetch(`${tmdbApiProxyUrl}/${item.media_type}/${item.id}`)
+          fetch(`${tmdbApiBaseUrl}/${item.media_type}/${item.id}?api_key=${tmdbApiKey}`)
             .then(r => r.json()).then(data => {
               if (item.media_type === 'tv') showTvDetails(data);
               else showDetails(data);
@@ -1020,18 +1020,17 @@
       const perPage = isTablet ? 40 : 20;
 
       if (currentMode === "search" && currentQuery.trim()) {
-        url = `${tmdbApiProxyUrl}/search/multi?query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`;
+        url = `${tmdbApiBaseUrl}/search/multi?query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false&api_key=${tmdbApiKey}`;
       } else if (currentMode === "anime") {
-        url = `${tmdbApiProxyUrl}/discover/movie?with_genres=${currentGenre || 16}&with_original_language=ja${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+        url = `${tmdbApiBaseUrl}/discover/movie?with_genres=${currentGenre || 16}&with_original_language=ja${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`;
       } else if (currentMode === "tagalog") {
-        url = `${tmdbApiProxyUrl}/discover/movie?with_original_language=tl${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+        url = `${tmdbApiBaseUrl}/discover/movie?with_original_language=tl${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`;
       } else if (currentMode === "tv") {
         mediaType = "tv";
-        url = `${tmdbApiProxyUrl}/discover/tv?${currentGenre ? `with_genres=${currentGenre}` : ''}${currentYear ? `&first_air_date_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+        url = `${tmdbApiBaseUrl}/discover/tv?${currentGenre ? `with_genres=${currentGenre}` : ''}${currentYear ? `&first_air_date_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`;
       } else if (currentMode === "netflix") {
-        // New Netflix logic: fetch both movies and TV shows
-        const movieRes = await fetch(`${tmdbApiProxyUrl}/discover/movie?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`);
-        const tvRes = await fetch(`${tmdbApiProxyUrl}/discover/tv?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}`);
+        const movieRes = await fetch(`${tmdbApiBaseUrl}/discover/movie?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`);
+        const tvRes = await fetch(`${tmdbApiBaseUrl}/discover/tv?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`);
         const [movieData, tvData] = await Promise.all([movieRes.json(), tvRes.json()]);
         const combinedResults = [...(movieData.results || []).map(item => ({ ...item, media_type: 'movie' })), ...(tvData.results || []).map(item => ({ ...item, media_type: 'tv' }))];
         const sortedResults = combinedResults.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
@@ -1039,7 +1038,7 @@
         loadedPages.add(page);
         return sortedResults.slice(0, perPage);
       } else {
-        url = `${tmdbApiProxyUrl}/discover/movie?${currentGenre ? `with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+        url = `${tmdbApiBaseUrl}/discover/movie?${currentGenre ? `with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`;
       }
 
       try {
@@ -1082,7 +1081,7 @@
         const mediaType = isTv ? 'tv' : 'movie';
         const movieDiv = document.createElement('div');
         movieDiv.className = 'movie-col';
-        movieDiv.dataset.id = item.id; // Store data on the element
+        movieDiv.dataset.id = item.id;
         movieDiv.dataset.mediaType = mediaType;
         movieDiv.innerHTML = `
           <div class="movie-poster-wrapper" tabindex="0">
@@ -1170,9 +1169,9 @@
       document.getElementById('modal-trailer').innerHTML = "";
       try {
         const [creditsRes, videosRes, similarRes] = await Promise.all([
-          fetch(`${tmdbApiProxyUrl}/movie/${movie.id}/credits`),
-          fetch(`${tmdbApiProxyUrl}/movie/${movie.id}/videos`),
-          fetch(`${tmdbApiProxyUrl}/movie/${movie.id}/similar`)
+          fetch(`${tmdbApiBaseUrl}/movie/${movie.id}/credits?api_key=${tmdbApiKey}`),
+          fetch(`${tmdbApiBaseUrl}/movie/${movie.id}/videos?api_key=${tmdbApiKey}`),
+          fetch(`${tmdbApiBaseUrl}/movie/${movie.id}/similar?api_key=${tmdbApiKey}`)
         ]);
         const creditsData = await creditsRes.json();
         const videosData = await videosRes.json();
@@ -1205,7 +1204,7 @@
       changeServer();
     }
     window.showDetailsFromId = function(id) {
-      fetch(`${tmdbApiProxyUrl}/movie/${id}`)
+      fetch(`${tmdbApiBaseUrl}/movie/${id}?api_key=${tmdbApiKey}`)
         .then(r => r.json()).then(showDetails);
     }
     function getStars(vote) {
@@ -1295,12 +1294,12 @@
       tvEpisodeNextBtn.style.display = 'none';
       document.getElementById('tv-modal-seasons-list').innerHTML = '<p>Loading seasons...</p>';
       try {
-        const res = await fetch(`${tmdbApiProxyUrl}/tv/${show.id}?append_to_response=credits,videos`);
+        const res = await fetch(`${tmdbApiBaseUrl}/tv/${show.id}?api_key=${tmdbApiKey}&append_to_response=credits,videos`);
         const data = await res.json();
         tvModalData.seasons = data.seasons || [];
         let html = '';
         for (let season of tvModalData.seasons.filter(s => s.season_number >= 0)) {
-          const seasonRes = await fetch(`${tmdbApiProxyUrl}/tv/${show.id}/season/${season.season_number}`);
+          const seasonRes = await fetch(`${tmdbApiBaseUrl}/tv/${show.id}/season/${season.season_number}?api_key=${tmdbApiKey}`);
           const seasonData = await seasonRes.json();
           html += `<div class="season-block">
             <div class="season-header" role="button" tabindex="0" aria-expanded="false" aria-controls="season-${season.season_number}" data-season-number="${season.season_number}">Season ${season.season_number} (${seasonData.episodes?.length || 0} Episodes)</div>
@@ -1372,7 +1371,7 @@
     async function updateNextEpisodeButton(showId, season, episode) {
       const btn = tvEpisodeNextBtn;
       try {
-        const res = await fetch(`${tmdbApiProxyUrl}/tv/${showId}/season/${season}`);
+        const res = await fetch(`${tmdbApiBaseUrl}/tv/${showId}/season/${season}?api_key=${tmdbApiKey}`);
         const data = await res.json();
         const episodes = data.episodes || [];
         const nextEpisode = episodes.find(ep => ep.episode_number === parseInt(episode) + 1);
@@ -1504,7 +1503,6 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
 
-      // FIX: Modernized event listeners for navigation and other interactive elements
       document.getElementById('nav-movies').addEventListener('click', (e) => { e.preventDefault(); switchMode('popular'); });
       document.getElementById('nav-tvshows').addEventListener('click', (e) => { e.preventDefault(); switchMode('tv'); });
       document.getElementById('nav-anime').addEventListener('click', (e) => { e.preventDefault(); switchMode('anime'); });
@@ -1512,12 +1510,9 @@
       document.getElementById('nav-favorites').addEventListener('click', (e) => { e.preventDefault(); switchMode('favorites'); });
       document.getElementById('nav-netflix').addEventListener('click', (e) => {
         e.preventDefault();
-        // The extra menu for movies/TV shows has been removed as requested.
         switchMode('netflix');
       });
 
-      // FIX: The search bar logic is now stable and fully functional.
-      // NOTE: It requires the server.js proxy to be running on localhost:3000.
       searchForm.addEventListener('submit', debounce((e) => {
         e.preventDefault();
         const query = searchInput.value.trim();
