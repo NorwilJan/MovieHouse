@@ -445,7 +445,7 @@
       align-items: center;
       gap: 10px;
     }
-    #genre-filter-form select {
+    .genre-filter-form select {
       background: var(--bg-light);
       border: 1px solid var(--color-dark-border);
       color: var(--color-primary);
@@ -453,19 +453,14 @@
       border-radius: 4px;
       width: 100%;
     }
-    #genre-filter-form select#year-filter {
-      background: var(--bg-light);
-      border: 1px solid var(--color-dark-border);
-      color: var(--color-primary);
-      padding: 0.5rem;
-      border-radius: 4px;
+    #year-filter {
       width: 120px;
     }
-    #genre-filter-form select:disabled {
+    .genre-filter-form select:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
-    #genre-filter:focus, #year-filter:focus {
+    #genre-filter:focus, #year-filter:focus, #netflix-filter:focus {
       outline: 2px solid var(--color-blue-light);
       outline-offset: 2px;
     }
@@ -693,6 +688,11 @@
         <select id="year-filter" aria-label="Filter movies by year" role="listbox">
           <option value="" id="year-all">All Years</option>
         </select>
+        <select id="netflix-filter" aria-label="Filter Netflix content" role="listbox" style="display: none;">
+          <option value="show-all">All</option>
+          <option value="movies">Movies</option>
+          <option value="tv">TV Shows</option>
+        </select>
         <button type="button" id="clear-genre-btn" class="btn btn-outline-primary" style="padding: 0.5rem 1rem;">Clear</button>
       </form>
     </div>
@@ -752,6 +752,7 @@
     let currentQuery = "";
     let currentGenre = "";
     let currentYear = "";
+    let netflixFilter = "show-all";
     let favorites = JSON.parse(localStorage.getItem('favorites') || "[]");
     let tvModalData = { tvId: null, season: null, episode: null, seasons: [] };
     let categoryItems = [];
@@ -774,6 +775,8 @@
     const movieList = document.getElementById('movie-list');
     const infiniteLoader = document.getElementById('infinite-loader');
     const genreFilter = document.getElementById('genre-filter');
+    const yearFilter = document.getElementById('year-filter');
+    const netflixFilterEl = document.getElementById('netflix-filter');
     const movieIframe = document.getElementById('modal-video');
     const tvIframe = document.getElementById('tv-episode-player');
     const bmcHoverBtn = document.getElementById('bmc-hover-btn');
@@ -898,9 +901,8 @@
     }
 
     function populateYearFilter() {
-      const yearFilter = document.getElementById('year-filter');
-      yearFilter.innerHTML = '<option value="" id="year-all">All Years</option>';
       const currentYearNum = new Date().getFullYear();
+      yearFilter.innerHTML = '<option value="" id="year-all">All Years</option>';
       for (let year = currentYearNum; year >= 1900; year--) {
         const option = document.createElement('option');
         option.value = year;
@@ -1016,8 +1018,7 @@
       if (currentMode === "favorites") {
         return [];
       }
-      const isTablet = window.matchMedia("(min-width: 768px) and (max-width: 1199.98px)").matches;
-      const perPage = isTablet ? 40 : 20;
+      const perPage = window.matchMedia("(min-width: 768px) and (max-width: 1199.98px)").matches ? 40 : 20;
 
       if (currentMode === "search" && currentQuery.trim()) {
         url = `${tmdbApiBaseUrl}/search/multi?query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false&api_key=${tmdbApiKey}`;
@@ -1029,21 +1030,29 @@
         mediaType = "tv";
         url = `${tmdbApiBaseUrl}/discover/tv?${currentGenre ? `with_genres=${currentGenre}` : ''}${currentYear ? `&first_air_date_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`;
       } else if (currentMode === "netflix") {
-        const movieRes = await fetch(`${tmdbApiBaseUrl}/discover/movie?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`);
-        const tvRes = await fetch(`${tmdbApiBaseUrl}/discover/tv?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`);
-        const [movieData, tvData] = await Promise.all([movieRes.json(), tvRes.json()]);
-        const combinedResults = [...(movieData.results || []).map(item => ({ ...item, media_type: 'movie' })), ...(tvData.results || []).map(item => ({ ...item, media_type: 'tv' }))];
-        const sortedResults = combinedResults.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
-        totalPages = Math.min(Math.max(movieData.total_pages, tvData.total_pages) || 1, maxPages);
-        loadedPages.add(page);
-        return sortedResults.slice(0, perPage);
+        if (netflixFilter === 'movies') {
+          url = `${tmdbApiBaseUrl}/discover/movie?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`;
+        } else if (netflixFilter === 'tv') {
+          url = `${tmdbApiBaseUrl}/discover/tv?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`;
+          mediaType = "tv";
+        } else { // show-all
+          const movieRes = await fetch(`${tmdbApiBaseUrl}/discover/movie?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`);
+          const tvRes = await fetch(`${tmdbApiBaseUrl}/discover/tv?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`);
+          const [movieData, tvData] = await Promise.all([movieRes.json(), tvRes.json()]);
+          const combinedResults = [...(movieData.results || []).map(item => ({ ...item, media_type: 'movie' })), ...(tvData.results || []).map(item => ({ ...item, media_type: 'tv' }))];
+          const sortedResults = combinedResults.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+          totalPages = Math.min(Math.max(movieData.total_pages, tvData.total_pages) || 1, maxPages);
+          loadedPages.add(page);
+          return sortedResults.slice(0, perPage);
+        }
       } else {
         url = `${tmdbApiBaseUrl}/discover/movie?${currentGenre ? `with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}&api_key=${tmdbApiKey}`;
       }
 
       try {
         genreFilter.disabled = true;
-        document.getElementById('year-filter').disabled = true;
+        yearFilter.disabled = true;
+        netflixFilterEl.disabled = true;
         if (!url) {
           movieList.innerHTML = `<div class="empty-state">Please enter a search query.</div>`;
           return [];
@@ -1065,7 +1074,8 @@
         return [];
       } finally {
         genreFilter.disabled = false;
-        document.getElementById('year-filter').disabled = false;
+        yearFilter.disabled = false;
+        netflixFilterEl.disabled = false;
       }
     }
     // ENHANCEMENT: Refactored render function to use createElement
@@ -1317,7 +1327,7 @@
           header.addEventListener('click', () => toggleSeason(header.dataset.seasonNumber));
         });
         document.querySelectorAll('.tv-episode-play-btn').forEach(btn => {
-          btn.addEventListener('click', () => playEpisode(btn.dataset.showId, btn.dataset.seasonNumber, btn.dataset.episodeNumber));
+          btn.addEventListener('click', () => playEpisode(btn.dataset.show-id, btn.dataset.seasonNumber, btn.dataset.episodeNumber));
         });
       } catch (e) {
         console.error('[showTvDetails] Error:', e);
@@ -1455,11 +1465,22 @@
         "popular": "Trending Movies"
       };
       sectionTitle.textContent = titles[newMode] || titles.popular;
+
+      if (newMode === 'netflix') {
+        genreFilter.style.display = 'none';
+        yearFilter.style.display = 'none';
+        netflixFilterEl.style.display = 'inline-block';
+      } else {
+        genreFilter.style.display = 'inline-block';
+        yearFilter.style.display = 'inline-block';
+        netflixFilterEl.style.display = 'none';
+      }
       
       setActiveNav(newMode);
       
       genreFilter.value = "";
-      document.getElementById('year-filter').value = "";
+      yearFilter.value = "";
+      netflixFilterEl.value = "show-all";
       populateGenreFilter();
       populateYearFilter();
       
@@ -1524,7 +1545,7 @@
         currentGenre = "";
         currentYear = "";
         genreFilter.value = "";
-        document.getElementById('year-filter').value = "";
+        yearFilter.value = "";
         switchMode('search');
       }, 300));
 
@@ -1539,15 +1560,19 @@
         currentGenre = genreFilter.value;
         resetInfiniteScroll();
       });
-      document.getElementById('year-filter').addEventListener('change', () => {
-        currentYear = document.getElementById('year-filter').value;
+      yearFilter.addEventListener('change', () => {
+        currentYear = yearFilter.value;
+        resetInfiniteScroll();
+      });
+      netflixFilterEl.addEventListener('change', () => {
+        netflixFilter = netflixFilterEl.value;
         resetInfiniteScroll();
       });
       document.getElementById('clear-genre-btn').addEventListener('click', () => {
         currentGenre = "";
         currentYear = "";
         genreFilter.value = "";
-        document.getElementById('year-filter').value = "";
+        yearFilter.value = "";
         resetInfiniteScroll();
       });
 
