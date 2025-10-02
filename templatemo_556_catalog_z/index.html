@@ -1010,43 +1010,78 @@
       }
       const isTablet = window.matchMedia("(min-width: 768px) and (max-width: 1199.98px)").matches;
       const perPage = isTablet ? 40 : 20; // Fetch more items on tablets
-      if (currentMode === "search" && currentQuery.trim()) {
-        url = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`;
-      } else if (currentMode === "anime") {
-        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_genres=${currentGenre || 16}&with_original_language=ja${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
-      } else if (currentMode === "tagalog") {
-        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_original_language=tl${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
-      } else if (currentMode === "tv") {
-        url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&first_air_date_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
-      } else if (currentMode === "netflix") {
-        if (netflixType === "movie") {
-          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_watch_providers=8&watch_region=US${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
-        } else {
-          url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_watch_providers=8&watch_region=US${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&first_air_date_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
-        }
-      } else {
-        url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
-      }
       try {
         genreFilter.disabled = true;
         document.getElementById('year-filter').disabled = true;
-        if (!url) {
-          console.log('[fetchMoviesInf] No URL constructed, likely empty search query');
-          movieList.innerHTML = `<div class="empty-state">Please enter a search query.</div>`;
-          return [];
+        let results = [];
+        if (currentMode === "search" && currentQuery.trim()) {
+          // Search for movies, TV shows, and people
+          const [multiRes, personRes] = await Promise.all([
+            fetch(`https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=${page}&include_adult=false`),
+            fetch(`https://api.themoviedb.org/3/search/person?api_key=${apiKey}&query=${encodeURIComponent(currentQuery)}&page=1&include_adult=false`)
+          ]);
+          if (!multiRes.ok || !personRes.ok) throw new Error('Failed to fetch search results');
+          const multiData = await multiRes.json();
+          const personData = await personRes.json();
+
+          // Process multi-search results (movies and TV shows)
+          results = multiData.results || [];
+          totalPages = Math.min(multiData.total_pages || 1, maxPages);
+
+          // Process person search results
+          if (personData.results && personData.results.length > 0) {
+            const person = personData.results[0]; // Take the top person result
+            const movieCreditsRes = await fetch(`https://api.themoviedb.org/3/person/${person.id}/movie_credits?api_key=${apiKey}`);
+            if (movieCreditsRes.ok) {
+              const creditsData = await movieCreditsRes.json();
+              const castMovies = (creditsData.cast || []).map(movie => ({
+                ...movie,
+                media_type: 'movie'
+              }));
+              // Combine and deduplicate results
+              const uniqueIds = new Set(results.map(item => item.id));
+              results = [
+                ...results,
+                ...castMovies.filter(movie => !uniqueIds.has(movie.id))
+              ].slice(0, perPage); // Limit to perPage items
+            }
+          }
+          results = results.slice(0, perPage); // Ensure we don't exceed perPage
+        } else if (currentMode === "anime") {
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_genres=${currentGenre || 16}&with_original_language=ja${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+        } else if (currentMode === "tagalog") {
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_original_language=tl${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+        } else if (currentMode === "tv") {
+          url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&first_air_date_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+        } else if (currentMode === "netflix") {
+          if (netflixType === "movie") {
+            url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_watch_providers=8&watch_region=US${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+          } else {
+            url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&with_watch_providers=8&watch_region=US${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&first_air_date_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
+          }
+        } else {
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}${currentGenre ? `&with_genres=${currentGenre}` : ''}${currentYear ? `&primary_release_year=${currentYear}` : ''}&sort_by=popularity.desc&page=${page}`;
         }
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        if (!data.results || data.results.length === 0) {
+        if (url) {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const data = await response.json();
+          if (!data.results || data.results.length === 0) {
+            console.log(`[fetchMoviesInf] No results for page ${page}`);
+            movieList.innerHTML = `<div class="empty-state">No items found for "${currentQuery || 'this category'}"${currentGenre ? ` in genre ${currentGenre}` : ''}${currentYear ? ` from ${currentYear}` : ''}.</div>`;
+            return [];
+          }
+          totalPages = Math.min(data.total_pages || 1, maxPages);
+          results = data.results.slice(0, perPage);
+        }
+        if (!results.length) {
           console.log(`[fetchMoviesInf] No results for page ${page}`);
           movieList.innerHTML = `<div class="empty-state">No items found for "${currentQuery || 'this category'}"${currentGenre ? ` in genre ${currentGenre}` : ''}${currentYear ? ` from ${currentYear}` : ''}.</div>`;
           return [];
         }
-        totalPages = Math.min(data.total_pages || 1, maxPages);
         loadedPages.add(page);
-        console.log(`[fetchMoviesInf] Fetched ${data.results.length} items for page ${page}`);
-        return data.results.slice(0, perPage); // Limit to perPage items
+        console.log(`[fetchMoviesInf] Fetched ${results.length} items for page ${page}`);
+        return results;
       } catch (e) {
         console.error('[fetchMoviesInf] Error:', e);
         movieList.innerHTML = `<div class="error-state">Failed to load content. Please check your connection or try again later.</div>`;
