@@ -1,22 +1,45 @@
 // WARNING: NEVER HARDCODE YOUR API KEY IN FRONT-END CODE FOR PRODUCTION!
 // This is for local demonstration ONLY.
+// Replace with your actual valid API key for Gemini.
 const API_KEY = "AIzaSyB_dgtdiGueVIEUXkIY5QQ5Z44RIafbqIc"; 
-const GEMINI_MODEL = "gemini-2.5-flash"; // A fast and capable model for chat
+// Changed to a model capable of image generation
+const GEMINI_MODEL = "gemini-2.5-flash-image"; 
 
 const chatForm = document.getElementById('chatForm');
 const userInput = document.getElementById('userInput');
 const chatHistory = document.getElementById('chatHistory');
 const sendButton = document.getElementById('sendButton');
 
-// Function to add a message to the chat history
-function addMessage(text, sender) {
+// Function to add a message (text or image) to the chat history
+function addMessage(content, sender) {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message', `${sender}-message`);
     
-    const textNode = document.createElement('p');
-    textNode.textContent = text;
-    messageDiv.appendChild(textNode);
-    
+    // Content can be a string (text) or an object {type: 'image', data: 'base64string'}
+    if (typeof content === 'string') {
+        const textNode = document.createElement('p');
+        textNode.textContent = content;
+        messageDiv.appendChild(textNode);
+    } else if (content.type === 'image') {
+        const imgElement = document.createElement('img');
+        imgElement.src = `data:image/jpeg;base64,${content.data}`; // Assuming JPEG for simplicity
+        imgElement.alt = "Generated Image";
+        messageDiv.appendChild(imgElement);
+    } else if (Array.isArray(content)) { // Handle mixed content (text and image)
+        content.forEach(part => {
+            if (part.text) {
+                const textNode = document.createElement('p');
+                textNode.textContent = part.text;
+                messageDiv.appendChild(textNode);
+            } else if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
+                const imgElement = document.createElement('img');
+                imgElement.src = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                imgElement.alt = "Generated Image";
+                messageDiv.appendChild(imgElement);
+            }
+        });
+    }
+
     chatHistory.appendChild(messageDiv);
     // Scroll to the bottom
     chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -29,7 +52,7 @@ function addLoadingIndicator() {
     loadingDiv.id = 'loadingIndicator';
     
     const textNode = document.createElement('p');
-    textNode.textContent = 'Gemini is typing...';
+    textNode.textContent = 'Gemini is thinking...';
     loadingDiv.appendChild(textNode);
     
     chatHistory.appendChild(loadingDiv);
@@ -65,7 +88,6 @@ async function getGeminiResponse(prompt) {
         });
 
         if (!response.ok) {
-            // Check for specific error messages from the API
             const errorData = await response.json();
             const errorMessage = errorData.error ? errorData.error.message : response.statusText;
             throw new Error(`API Error: ${errorMessage}`);
@@ -73,14 +95,43 @@ async function getGeminiResponse(prompt) {
 
         const data = await response.json();
         
-        // Extract the text content from the response
-        return data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts 
-               ? data.candidates[0].content.parts[0].text 
-               : "Sorry, I received an empty or unreadable response from the AI.";
+        // Handle potential safety ratings (Gemini might block a response)
+        if (data.promptFeedback && data.promptFeedback.safetyRatings) {
+            const blockedCategories = data.promptFeedback.safetyRatings
+                                        .filter(rating => rating.probability === 'HIGH' || rating.probability === 'MEDIUM')
+                                        .map(rating => rating.category.replace('HARM_CATEGORY_', '').toLowerCase());
+            if (blockedCategories.length > 0) {
+                return `My apologies, your request was blocked due to safety concerns related to: ${blockedCategories.join(', ')}. Please try a different prompt.`;
+            }
+        }
+
+        // Check if there are candidates and content
+        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+            const parts = data.candidates[0].content.parts;
+            
+            // If there's only one part and it's text, return it directly as a string
+            if (parts.length === 1 && parts[0].text) {
+                return parts[0].text;
+            } 
+            // If there's only one part and it's an image, return it as an image object
+            else if (parts.length === 1 && parts[0].inlineData && parts[0].inlineData.mimeType.startsWith('image/')) {
+                return { 
+                    type: 'image', 
+                    data: parts[0].inlineData.data, 
+                    mimeType: parts[0].inlineData.mimeType 
+                };
+            }
+            // If there are multiple parts (text and/or image), return the array
+            else if (parts.length > 0) {
+                return parts;
+            }
+        }
+        
+        return "Sorry, I received an empty or unreadable response from the AI.";
 
     } catch (error) {
         console.error('Gemini API Fetch Error:', error);
-        return `An error occurred: ${error.message}. Please check your API key, model name, and network connection.`;
+        return `An error occurred: ${error.message}. Please check your API key, model name, and network connection. Also, ensure your API key is authorized for image generation models.`;
     }
 }
 
@@ -105,7 +156,7 @@ chatForm.addEventListener('submit', async (e) => {
         // 4. Get the AI's response
         const botResponse = await getGeminiResponse(prompt);
 
-        // 5. Display the AI's response
+        // 5. Display the AI's response (can be text, image, or mixed)
         addMessage(botResponse, 'bot');
         
     } finally {
@@ -115,4 +166,3 @@ chatForm.addEventListener('submit', async (e) => {
         userInput.focus(); // Keep focus on the input field
     }
 });
-
