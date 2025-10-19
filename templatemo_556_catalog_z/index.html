@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Chat Demo</title>
+    <title>Gemini Multi-Modal Chat Demo</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="chat-container">
-        <h1>Gemini API Chat</h1>
+        <h1>Gemini AI Chat (Text & Images)</h1>
         <div class="chat-history" id="chatHistory">
             <div class="message bot-message">
-                <p>Hello! I'm Gemini. How can I help you today?</p>
+                <p>Hello! I'm Gemini. I can respond with text and even generate images. Try asking me to "draw a cat" or "create an image of a spaceship".</p>
             </div>
         </div>
         <form id="chatForm" class="chat-input">
-            <input type="text" id="userInput" placeholder="Ask me anything..." required>
+            <input type="text" id="userInput" placeholder="Ask me anything or ask for an image..." required>
             <button type="submit" id="sendButton">Send</button>
         </form>
     </div>
