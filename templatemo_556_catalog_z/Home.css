@@ -682,23 +682,17 @@ body.modal-open {
   margin-top: 10px;
   font-size: 13px;
   color: var(--muted);
-  flex-wrap: wrap;
 }
 
 .server-btn {
   background: #222;
   border: 1px solid var(--border);
   color: #aaa;
-  padding: 6px 14px;
+  padding: 4px 12px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
   transition: all 0.2s ease;
-}
-
-.server-btn:hover {
-  background: #333;
-  color: #fff;
 }
 
 .server-btn.active {
