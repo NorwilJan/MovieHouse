@@ -57,7 +57,7 @@ const state = {
   currentSeason: 1,
   currentEpisode: 1,
   currentTabCategory: 'all',
-  currentServer: 'vidlink',
+  currentServer: 'vidlink', // Replaced videasy with vidlink
   gridCategory: null,
   gridPage: 1,
   gridLoading: false,
@@ -407,40 +407,22 @@ function loadVideo() {
   const isTv = state.currentItem.media_type === 'tv' || !state.currentItem.title;
   let embedURL = '';
 
-  switch (state.currentServer) {
-    case 'vidlink':
-      embedURL = isTv 
-        ? `https://vidlink.pro/tv/${state.currentItem.id}/${state.currentSeason}/${state.currentEpisode}`
-        : `https://vidlink.pro/movie/${state.currentItem.id}`;
-      break;
-
-    case 'vidsrc_cc':
-      embedURL = isTv 
-        ? `https://vidsrc.cc/v2/embed/tv/${state.currentItem.id}/${state.currentSeason}/${state.currentEpisode}`
-        : `https://vidsrc.cc/v2/embed/movie/${state.currentItem.id}`;
-      break;
-
-    case 'autoembed':
-      embedURL = isTv 
-        ? `https://player.autoembed.cc/embed/tv/${state.currentItem.id}/${state.currentSeason}/${state.currentEpisode}`
-        : `https://player.autoembed.cc/embed/movie/${state.currentItem.id}`;
-      break;
-
-    case 'vidsrc':
-      embedURL = isTv 
-        ? `https://vidsrc.xyz/embed/tv?tmdb=${state.currentItem.id}&season=${state.currentSeason}&episode=${state.currentEpisode}`
-        : `https://vidsrc.xyz/embed/movie?tmdb=${state.currentItem.id}`;
-      break;
-
-    default:
-      embedURL = isTv 
-        ? `https://vidlink.pro/tv/${state.currentItem.id}/${state.currentSeason}/${state.currentEpisode}`
-        : `https://vidlink.pro/movie/${state.currentItem.id}`;
+  if (state.currentServer === 'vidsrc') {
+    embedURL = isTv 
+      ? `https://vidsrc.xyz/embed/tv?tmdb=${state.currentItem.id}&season=${state.currentSeason}&episode=${state.currentEpisode}`
+      : `https://vidsrc.xyz/embed/movie?tmdb=${state.currentItem.id}`;
+  } else if (state.currentServer === 'vidsrcpro') {
+    embedURL = isTv 
+      ? `https://vidsrc.pro/embed/tv/${state.currentItem.id}/${state.currentSeason}/${state.currentEpisode}`
+      : `https://vidsrc.pro/embed/movie/${state.currentItem.id}`;
+  } else {
+    // VidLink Engine (Primary Server Replacement for Videasy)
+    embedURL = isTv 
+      ? `https://vidlink.pro/tv/${state.currentItem.id}/${state.currentSeason}/${state.currentEpisode}?primaryColor=e50914&autoplay=false`
+      : `https://vidlink.pro/movie/${state.currentItem.id}?primaryColor=e50914&autoplay=false`;
   }
 
-  if (DOM.modalVideo.src !== embedURL) {
-    DOM.modalVideo.src = embedURL;
-  }
+  if (DOM.modalVideo.src !== embedURL) DOM.modalVideo.src = embedURL;
 }
 
 function switchServer(serverName) {
@@ -960,6 +942,7 @@ async function init() {
     DOM.gridScrollArea.addEventListener('scroll', handleGridScroll);
   }
 
+  // Pre-fill rows with skeleton loaders while fetching API data
   renderSkeletons('movies-list');
   renderSkeletons('tvshows-list');
   renderSkeletons('anime-list');
