@@ -1,364 +1,638 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-  <title>XAUUSD AI Signal</title>
+:root {
+  --bg: #0b0f19;
+  --panel: #111827;
+  --panel-light: #172033;
+  --border: #263247;
 
-  <link rel="stylesheet" href="Home.css" />
-</head>
+  --text: #f4f7fb;
+  --muted: #8c98aa;
 
-<body>
+  --green: #22c55e;
+  --red: #ef4444;
+  --yellow: #f59e0b;
+  --blue: #3b82f6;
+}
 
-  <div class="app">
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
+.app {
+  display: flex;
+  min-height: 100vh;
+}
 
-      <div class="logo">
-        <div class="logo-icon">AI</div>
-        <div>
-          <h2>GoldAI</h2>
-          <span>Trading Assistant</span>
-        </div>
-      </div>
 
-      <nav>
-        <a href="#" class="active">
-          <span>📊</span>
-          Dashboard
-        </a>
+/* =========================
+   SIDEBAR
+========================= */
 
-        <a href="#">
-          <span>📈</span>
-          Signals
-        </a>
+.sidebar {
+  width: 250px;
+  background: #080c14;
+  border-right: 1px solid var(--border);
 
-        <a href="#">
-          <span>📋</span>
-          Trade History
-        </a>
+  padding: 25px 18px;
 
-        <a href="#">
-          <span>⚙️</span>
-          Settings
-        </a>
-      </nav>
+  display: flex;
+  flex-direction: column;
+}
 
-      <div class="connection">
-        <div class="status-dot"></div>
-        <div>
-          <strong>System Online</strong>
-          <small>MT5 connection pending</small>
-        </div>
-      </div>
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 
-    </aside>
+  padding: 5px 10px 30px;
+}
 
+.logo-icon {
+  width: 42px;
+  height: 42px;
 
-    <!-- MAIN CONTENT -->
-    <main class="main">
+  border-radius: 10px;
 
-      <!-- HEADER -->
-      <header class="topbar">
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-        <div>
-          <h1>XAUUSD AI Signal</h1>
-          <p>Gold / US Dollar · 15 Minute Analysis</p>
-        </div>
+  background: var(--blue);
 
-        <div class="market-status">
-          <span class="status-dot"></span>
-          Market Monitor
-        </div>
+  font-weight: bold;
+}
 
-      </header>
+.logo h2 {
+  font-size: 20px;
+}
 
+.logo span {
+  color: var(--muted);
+  font-size: 11px;
+}
 
-      <!-- SIGNAL CARD -->
-      <section class="signal-card">
 
-        <div class="signal-header">
+/* NAV */
 
-          <div>
-            <span class="label">CURRENT SIGNAL</span>
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
-            <div class="signal-title">
-              <span id="signalIcon">●</span>
-              <span id="signalText">WAIT</span>
-            </div>
+nav a {
+  text-decoration: none;
+  color: var(--muted);
 
-            <p id="signalDescription">
-              Waiting for market confirmation...
-            </p>
-          </div>
+  padding: 13px 14px;
 
-          <div class="confidence">
-            <span>SETUP QUALITY</span>
-            <strong id="confidence">--</strong>
-          </div>
+  border-radius: 9px;
 
-        </div>
+  display: flex;
+  gap: 12px;
+  align-items: center;
 
+  font-size: 14px;
+}
 
-        <!-- PRICE -->
-        <div class="price-section">
+nav a:hover,
+nav a.active {
+  background: var(--panel-light);
+  color: white;
+}
 
-          <div>
-            <span>Current XAUUSD</span>
 
-            <div class="price">
-              $<span id="currentPrice">3,640.20</span>
-            </div>
-          </div>
+/* CONNECTION */
 
-          <div class="price-change positive">
-            +0.35%
-          </div>
+.connection {
+  margin-top: auto;
 
-        </div>
+  border: 1px solid var(--border);
+  background: var(--panel);
 
+  padding: 13px;
 
-        <!-- TRADE LEVELS -->
-        <div class="trade-grid">
+  border-radius: 10px;
 
-          <div class="trade-box">
-            <span>ENTRY</span>
-            <strong id="entryPrice">--</strong>
-          </div>
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
 
-          <div class="trade-box stop">
-            <span>STOP LOSS</span>
-            <strong id="stopLoss">--</strong>
-          </div>
+.connection strong {
+  display: block;
+  font-size: 12px;
+}
 
-          <div class="trade-box target">
-            <span>TP1</span>
-            <strong id="takeProfit1">--</strong>
-          </div>
+.connection small {
+  display: block;
+  color: var(--muted);
+  margin-top: 3px;
+  font-size: 10px;
+}
 
-          <div class="trade-box target">
-            <span>TP2</span>
-            <strong id="takeProfit2">--</strong>
-          </div>
+.status-dot {
+  width: 9px;
+  height: 9px;
 
-          <div class="trade-box">
-            <span>RISK / REWARD</span>
-            <strong id="riskReward">--</strong>
-          </div>
+  border-radius: 50%;
 
-        </div>
+  background: var(--green);
 
+  box-shadow: 0 0 8px var(--green);
+}
 
-        <!-- ACTIONS -->
-        <div class="actions">
 
-          <button class="btn secondary" onclick="refreshSignal()">
-            ↻ Refresh Analysis
-          </button>
+/* =========================
+   MAIN
+========================= */
 
-          <button class="btn primary" onclick="demoTrade()">
-            Demo Trade
-          </button>
+.main {
+  flex: 1;
+  max-width: 1250px;
 
-        </div>
+  margin: auto;
 
-      </section>
+  padding: 35px;
+}
 
 
-      <!-- MARKET ANALYSIS -->
-      <section class="section">
+/* HEADER */
 
-        <div class="section-title">
-          <h2>Market Analysis</h2>
-          <span>M15</span>
-        </div>
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 
+  margin-bottom: 30px;
+}
 
-        <div class="analysis-grid">
+.topbar h1 {
+  font-size: 28px;
+}
 
-          <div class="analysis-card">
+.topbar p {
+  color: var(--muted);
+  margin-top: 6px;
+  font-size: 14px;
+}
 
-            <span>H1 TREND</span>
+.market-status {
+  display: flex;
+  gap: 9px;
+  align-items: center;
 
-            <strong id="h1Trend" class="bullish">
-              BULLISH
-            </strong>
+  color: var(--muted);
+  font-size: 13px;
+}
 
-            <small>
-              Higher timeframe direction
-            </small>
 
-          </div>
+/* =========================
+   SIGNAL CARD
+========================= */
 
+.signal-card {
+  background: linear-gradient(
+    145deg,
+    #141d2e,
+    #0f1625
+  );
 
-          <div class="analysis-card">
+  border: 1px solid var(--border);
 
-            <span>M15 TREND</span>
+  border-radius: 16px;
 
-            <strong id="m15Trend" class="bullish">
-              BULLISH
-            </strong>
+  padding: 28px;
 
-            <small>
-              Current market structure
-            </small>
+  box-shadow: 0 15px 40px rgba(0,0,0,.25);
+}
 
-          </div>
+.signal-header {
+  display: flex;
+  justify-content: space-between;
+}
 
+.label {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
 
-          <div class="analysis-card">
+.signal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 
-            <span>RSI 14</span>
+  margin-top: 7px;
 
-            <strong id="rsi">
-              57.8
-            </strong>
+  font-size: 32px;
+  font-weight: bold;
+}
 
-            <small>
-              Momentum
-            </small>
+.signal-title span:first-child {
+  color: var(--yellow);
+}
 
-          </div>
+.signal-header p {
+  margin-top: 8px;
+  color: var(--muted);
+}
 
+.confidence {
+  text-align: right;
+}
 
-          <div class="analysis-card">
+.confidence span {
+  display: block;
 
-            <span>ATR 14</span>
+  color: var(--muted);
+  font-size: 10px;
+}
 
-            <strong id="atr">
-              6.2
-            </strong>
+.confidence strong {
+  display: block;
 
-            <small>
-              Volatility
-            </small>
+  margin-top: 7px;
 
-          </div>
+  font-size: 18px;
+}
 
 
-          <div class="analysis-card">
+/* PRICE */
 
-            <span>EMA 50</span>
+.price-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
 
-            <strong id="ema50">
-              3,642.10
-            </strong>
+  margin-top: 30px;
 
-            <small>
-              Short-term trend
-            </small>
+  padding-bottom: 25px;
 
-          </div>
+  border-bottom: 1px solid var(--border);
+}
 
+.price-section span {
+  color: var(--muted);
+  font-size: 12px;
+}
 
-          <div class="analysis-card">
+.price {
+  font-size: 40px;
+  font-weight: bold;
 
-            <span>EMA 200</span>
+  margin-top: 5px;
+}
 
-            <strong id="ema200">
-              3,628.40
-            </strong>
+.price-change {
+  font-size: 14px;
+}
 
-            <small>
-              Long-term trend
-            </small>
+.positive {
+  color: var(--green);
+}
 
-          </div>
 
-        </div>
+/* TRADE GRID */
 
-      </section>
+.trade-grid {
+  display: grid;
 
+  grid-template-columns:
+    repeat(5, 1fr);
 
-      <!-- AI EXPLANATION -->
-      <section class="section">
+  gap: 12px;
 
-        <div class="section-title">
-          <h2>AI Analysis</h2>
-          <span>AI ASSISTANT</span>
-        </div>
+  margin-top: 22px;
+}
 
-        <div class="ai-card">
+.trade-box {
+  background: rgba(255,255,255,.035);
 
-          <div class="ai-icon">
-            ✦
-          </div>
+  border: 1px solid var(--border);
 
-          <div>
+  border-radius: 10px;
 
-            <h3 id="aiTitle">
-              Waiting for confirmation
-            </h3>
+  padding: 15px;
+}
 
-            <p id="aiExplanation">
-              The system is monitoring XAUUSD for a high-quality
-              M15 setup. No trade should be taken until the
-              required conditions are confirmed.
-            </p>
+.trade-box span {
+  color: var(--muted);
+  font-size: 10px;
+}
 
-          </div>
+.trade-box strong {
+  display: block;
 
-        </div>
+  margin-top: 8px;
 
-      </section>
+  font-size: 17px;
+}
 
+.trade-box.stop strong {
+  color: var(--red);
+}
 
-      <!-- MARKET LEVELS -->
-      <section class="section">
+.trade-box.target strong {
+  color: var(--green);
+}
 
-        <div class="section-title">
-          <h2>Important Levels</h2>
-          <span>XAUUSD</span>
-        </div>
 
-        <div class="levels">
+/* BUTTONS */
 
-          <div class="level resistance">
-            <span>Resistance</span>
-            <strong id="resistance">
-              $3,660.00
-            </strong>
-          </div>
+.actions {
+  display: flex;
+  gap: 10px;
 
-          <div class="level current">
-            <span>Current Price</span>
-            <strong id="levelPrice">
-              $3,640.20
-            </strong>
-          </div>
+  margin-top: 25px;
+}
 
-          <div class="level support">
-            <span>Support</span>
-            <strong id="support">
-              $3,635.00
-            </strong>
-          </div>
+.btn {
+  border: none;
 
-        </div>
+  border-radius: 8px;
 
-      </section>
+  padding: 12px 18px;
 
+  cursor: pointer;
 
-      <!-- DISCLAIMER -->
-      <footer>
+  font-weight: bold;
+}
 
-        <p>
-          ⚠️ This platform is an educational trading-analysis
-          prototype. Signals are not guaranteed predictions and
-          are not financial advice. Always test strategies on a
-          demo account before using real funds.
-        </p>
+.btn.primary {
+  background: var(--blue);
+  color: white;
+}
 
-      </footer>
+.btn.secondary {
+  background: #202b3e;
+  color: white;
+}
 
-    </main>
+.btn:hover {
+  opacity: .85;
+}
 
-  </div>
 
+/* =========================
+   SECTIONS
+========================= */
 
-  <script src="home.js"></script>
+.section {
+  margin-top: 35px;
+}
 
-</body>
-</html>
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 15px;
+}
+
+.section-title h2 {
+  font-size: 18px;
+}
+
+.section-title span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+
+/* ANALYSIS */
+
+.analysis-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 12px;
+}
+
+.analysis-card {
+  background: var(--panel);
+
+  border: 1px solid var(--border);
+
+  border-radius: 12px;
+
+  padding: 18px;
+}
+
+.analysis-card span {
+  display: block;
+
+  color: var(--muted);
+
+  font-size: 10px;
+
+  letter-spacing: .6px;
+}
+
+.analysis-card strong {
+  display: block;
+
+  margin-top: 8px;
+
+  font-size: 20px;
+}
+
+.analysis-card small {
+  display: block;
+
+  margin-top: 5px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+.bullish {
+  color: var(--green);
+}
+
+.bearish {
+  color: var(--red);
+}
+
+
+/* AI */
+
+.ai-card {
+  display: flex;
+
+  gap: 15px;
+
+  background: var(--panel);
+
+  border: 1px solid var(--border);
+
+  border-radius: 12px;
+
+  padding: 20px;
+}
+
+.ai-icon {
+  width: 40px;
+  height: 40px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #1d4ed8;
+
+  border-radius: 10px;
+
+  font-size: 20px;
+}
+
+.ai-card h3 {
+  font-size: 15px;
+}
+
+.ai-card p {
+  margin-top: 6px;
+
+  color: var(--muted);
+
+  line-height: 1.6;
+
+  font-size: 13px;
+}
+
+
+/* LEVELS */
+
+.levels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.level {
+  display: flex;
+
+  justify-content: space-between;
+
+  padding: 15px 18px;
+
+  border-radius: 9px;
+
+  border-left: 3px solid;
+}
+
+.level span {
+  color: var(--muted);
+}
+
+.level.resistance {
+  background: rgba(239,68,68,.08);
+  border-color: var(--red);
+}
+
+.level.current {
+  background: rgba(59,130,246,.08);
+  border-color: var(--blue);
+}
+
+.level.support {
+  background: rgba(34,197,94,.08);
+  border-color: var(--green);
+}
+
+
+/* FOOTER */
+
+footer {
+  margin-top: 40px;
+
+  padding: 20px;
+
+  border-top: 1px solid var(--border);
+
+  color: var(--muted);
+
+  font-size: 11px;
+
+  line-height: 1.6;
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 850px) {
+
+  .sidebar {
+    display: none;
+  }
+
+  .main {
+    padding: 20px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .topbar h1 {
+    font-size: 22px;
+  }
+
+  .trade-grid {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+
+  .analysis-grid {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+
+}
+
+@media (max-width: 500px) {
+
+  .main {
+    padding: 15px;
+  }
+
+  .signal-card {
+    padding: 20px;
+  }
+
+  .signal-title {
+    font-size: 27px;
+  }
+
+  .price {
+    font-size: 32px;
+  }
+
+  .trade-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    flex-direction: column;
+  }
+
+}
